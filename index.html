@@ -894,6 +894,10 @@
               a.href=m.link;
               a.target='_blank';
               a.textContent='Link';
+              a.style.color='#0066cc';
+              a.style.textDecoration='underline';
+              a.style.position='relative';
+              a.setAttribute('data-url', m.link);
               lP.appendChild(a);
               item.appendChild(lP);
             }
@@ -1040,58 +1044,65 @@
       });
     }
 
-    /* Download PDF => no integrity => GH Pages friendly */
-    function downloadPDF() {
-      if (!jsPDF || !window.html2canvas) {
-        alert("jsPDF or html2canvas not loaded properly.");
-        return;
-      }
-    
-      // Create a clone of the preview page to modify for PDF generation
-      const pdfPage = document.getElementById('pdfPreviewPage');
-      const clone = pdfPage.cloneNode(true);
-      
-      // Add data attributes to links to preserve URLs
-      clone.querySelectorAll('a').forEach(a => {
-        a.setAttribute('data-url', a.href);
-        // Use relative positioning to help maintain link positions
-        a.style.position = 'relative';
-      });
-    
-      const doc = new jsPDF('p', 'pt', 'letter');
-      
-      doc.html(clone, {
-        callback: function(doc) {
-          // Process each link after rendering
-          pdfPage.querySelectorAll('a').forEach(a => {
-            const url = a.href;
-            if (url) {
-              // Add an annotation for each link
-              doc.link(a.offsetLeft + 10, a.offsetTop + 10, a.offsetWidth, a.offsetHeight, { url: url });
-            }
-          });
-          doc.save('instructions.pdf');
-        },
-        x: 10,
-        y: 10,
-        width: 592,
-        autoPaging: 'text',
-        overflow: 'ellipsize',
-        html2canvas: {
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          scale: 1,
-          // Ensure links are captured properly
-          onclone: function(clonedDoc) {
-            clonedDoc.querySelectorAll('a').forEach(a => {
-              // Ensure link styling is preserved
-              a.style.color = '#0066cc';
-              a.style.textDecoration = 'underline';
-            });
-          }
+      /* Download PDF => no integrity => GH Pages friendly */
+      function downloadPDF() {
+        if (!jsPDF || !window.html2canvas) {
+          alert("jsPDF or html2canvas not loaded properly.");
+          return;
         }
-      });
-    }
+      
+        const doc = new jsPDF('p', 'pt', 'letter');
+        const pdfPage = document.getElementById('pdfPreviewPage');
+      
+        // Store all link positions before conversion
+        const linkElements = pdfPage.querySelectorAll('a');
+        const linkPositions = Array.from(linkElements).map(a => {
+          const rect = a.getBoundingClientRect();
+          return {
+            url: a.getAttribute('data-url') || a.href,
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height
+          };
+        });
+      
+        doc.html(pdfPage, {
+          callback: function(pdf) {
+            // Add all links as annotations
+            linkPositions.forEach(link => {
+              const y = link.top + 10; // Add margin offset
+              // Only add annotation if y is on the current page
+              if (y >= 0 && y <= pdf.internal.pageSize.height) {
+                pdf.link(
+                  link.left + 10, // Add x margin offset
+                  y,
+                  link.width,
+                  link.height,
+                  { url: link.url }
+                );
+              }
+            });
+            pdf.save('instructions.pdf');
+          },
+          x: 10,
+          y: 10,
+          width: 592,
+          autoPaging: 'text',
+          overflow: 'ellipsize',
+          html2canvas: {
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            scale: 1,
+            onclone: function(clonedDoc) {
+              clonedDoc.querySelectorAll('a').forEach(a => {
+                a.style.color = '#0066cc';
+                a.style.textDecoration = 'underline';
+              });
+            }
+          }
+        });
+      }
     
     // Also modify how links are created in the renderPreview function
     function createMaterialLink(url) {
