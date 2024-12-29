@@ -4,22 +4,20 @@
   <meta charset="UTF-8"/>
   <title>3D Printed Product Instructions Generator</title>
 
-  <!-- 1) html2canvas for jsPDF's doc.html() method -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-jc4c5n04Z1KFOHgl2n+4jaA9gsS+1hjJloSf6r1OqUrGhN79tyCAOR/9IApSwjiZ2DAH/ijUMGGkFZVChSgT7A==" crossorigin="anonymous"></script>
+  <!-- 1) html2canvas (no integrity attribute!) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
 
-  <!-- 2) jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-nB+U3/kZMu2tBigGqv8YMm2KNCUv7/dZ4uZ8uNRRU/6Z+baee5aVSCF4k/pAxZtAXY/eyHAsBMkZ4dF1OJhThQ==" crossorigin="anonymous"></script>
+  <!-- 2) jsPDF (no integrity) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 
-  <!-- 3) Cropper.js (for image cropping) -->
+  <!-- 3) Cropper.js CSS & JS (no integrity) -->
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"
-    integrity="sha512-eMsZ7qD/B4Y3kHKbQY0W8E9r4KLud/czZLy+Ma4dT603UwhHSrpMWod4p2uWgeRQN7c1CF0UYNmnBkZ69nTOXw=="
     crossorigin="anonymous"
 />
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"
-    integrity="sha512-te9jM7PNgNbWTZfR84dpEdeCb8Xy412BS/DqfWG6WwzYnCd+ua84Ojk3DQVb1/h9aJHMY2/wD1WZyxaLczZmZg=="
     crossorigin="anonymous"></script>
 
   <style>
@@ -41,7 +39,6 @@
       margin: 0;
       font-size: 1rem;
     }
-
     .btn {
       display: inline-block;
       padding: 4px 10px;
@@ -74,6 +71,10 @@
       background: #ffc107;
       color: #000;
     }
+    .btn-secondary {
+      background: #6c757d;
+      color: #fff;
+    }
 
     .container {
       display: flex;
@@ -96,7 +97,7 @@
       flex: 1;
       max-height: 90vh;
       overflow-y: auto;
-      font-size: 0.8rem; /* smaller text in preview */
+      font-size: 0.8rem; /* smaller text for preview */
     }
 
     .form-row {
@@ -156,7 +157,7 @@
       white-space: nowrap;
     }
 
-    /* PDF layout: less margin => x=10, width=592 in doc.html() */
+    /* The PDF-page with smaller margin => x=10, width=592 in doc.html() */
     .pdf-page {
       width: 612px;
       min-height: 50px;
@@ -169,7 +170,7 @@
       box-shadow: none;
     }
 
-    /* No extra left indentation for steps */
+    /* No left indentation in steps */
     .preview-step {
       margin-bottom: 8px;
       word-wrap: break-word;
@@ -181,7 +182,7 @@
     }
 
     .preview-section {
-      margin-bottom: 8px; 
+      margin-bottom: 8px;
       padding: 6px;
       border: 1px solid #eee;
       border-radius: 4px;
@@ -208,14 +209,14 @@
       margin-bottom: 6px;
     }
 
-    /* Step image sizes (XS–XL) */
+    /* Step image sizes (XS to XL) */
     .img-size-xs { width: 10%; }
     .img-size-s { width: 25%; }
     .img-size-m { width: 50%; }
     .img-size-l { width: 75%; }
     .img-size-xl { width: 100%; }
 
-    /* Materials grid: small icons => max-height=70px */
+    /* Materials grid - small icons => max-height=70px */
     .materials-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -242,7 +243,7 @@
       font-size: 0.8rem;
     }
 
-    /* Modal (Photo, Crop, Divider) */
+    /* Modal for Photo, Crop, Divider */
     .modal {
       position: fixed;
       z-index: 9999;
@@ -289,11 +290,9 @@
       font-size: 0.75rem;
     }
   </style>
-
 </head>
-<body>
 
-  <!-- Toolbar -->
+<body>
   <div class="toolbar">
     <h1>3D Printed Product Instructions Generator</h1>
     <button class="btn btn-primary" onclick="downloadPDF()">Download PDF</button>
@@ -304,25 +303,24 @@
     <div style="flex: 1;">
       <label>Title of the Instructions</label>
       <input type="text"
-             placeholder="e.g. My Awesome 3D Print"
+             placeholder="e.g., My Awesome 3D Print"
              oninput="updateInstructionsTitle(this.value)" />
     </div>
     <div style="flex: 1;">
       <label>Designer Name</label>
       <input type="text"
-             placeholder="e.g. John Doe"
+             placeholder="e.g., John Doe"
              oninput="updateDesignerName(this.value)" />
     </div>
   </div>
 
   <div class="container">
-    <!-- Form side -->
+    <!-- LEFT side: The forms -->
     <div class="form-container">
 
       <!-- Materials: Filament & Other -->
       <div class="form-section">
         <h2>Materials</h2>
-
         <h3>Filament</h3>
         <div id="filamentMaterialsContainer"></div>
         <button class="btn btn-add" onclick="addFilamentMaterial()">+ Add Filament</button>
@@ -332,14 +330,14 @@
         <button class="btn btn-add" onclick="addOtherMaterial()">+ Add Other</button>
       </div>
 
-      <!-- Packaging Materials -->
+      <!-- PACKAGING MATERIALS -->
       <div class="form-section">
         <h2>Packaging Materials</h2>
         <div id="packagingMaterialsContainer"></div>
         <button class="btn btn-add" onclick="addPackagingMaterial()">+ Add Packaging Material</button>
       </div>
 
-      <!-- Printing Steps -->
+      <!-- PRINTING STEPS -->
       <div class="form-section">
         <h2>Printing Steps</h2>
         <table class="steps-table" id="printingStepsTable">
@@ -354,7 +352,7 @@
         </table>
       </div>
 
-      <!-- Assembling Steps -->
+      <!-- ASSEMBLING STEPS -->
       <div class="form-section">
         <h2>Assembling Steps</h2>
         <table class="steps-table" id="assemblingStepsTable">
@@ -369,7 +367,7 @@
         </table>
       </div>
 
-      <!-- Packaging Steps -->
+      <!-- PACKAGING STEPS -->
       <div class="form-section">
         <h2>Packaging Steps</h2>
         <table class="steps-table" id="packagingStepsTable">
@@ -386,14 +384,14 @@
 
     </div>
 
-    <!-- Preview side -->
+    <!-- RIGHT side: Live Preview -->
     <div class="preview-container">
       <h2>Live Preview</h2>
       <div class="pdf-page" id="pdfPreviewPage"></div>
     </div>
   </div>
 
-  <!-- Photo Popup (Add/Edit) -->
+  <!-- Photo Popup -->
   <div id="photoPopup" class="modal">
     <div class="modal-content">
       <button class="close-button" onclick="closePhotoPopup()">X</button>
@@ -406,7 +404,7 @@
               style="background:#28a745;color:#fff;padding:3px 8px;border:none;border-radius:4px;font-size:0.75rem;cursor:pointer;"
               onclick="openCropperFromPopup()">Crop</button>
 
-      <label>Size (XS–XL for Steps Only):</label>
+      <label>Size (XS to XL for Steps Only):</label>
       <select id="photoSizeSelect">
         <option value="xs">XS (10%)</option>
         <option value="s">S (25%)</option>
@@ -449,16 +447,18 @@
   </div>
 
   <script>
-    /* ============ GLOBAL STATE ============ */
+    /* ==================== GLOBAL STATE ==================== */
     const { jsPDF } = window.jspdf || {};
 
     let instructionsTitle = '';
     let designerName = '';
 
+    /* Materials arrays */
     let filamentMaterials = [];
     let otherMaterials = [];
     let packagingMaterials = [];
 
+    /* Steps arrays (once only!) */
     let printingSteps = [];
     let assemblingSteps = [];
     let packagingStepsArr = [];
@@ -471,11 +471,11 @@
 
     /* Title & Designer */
     function updateInstructionsTitle(val){
-      instructionsTitle= val;
+      instructionsTitle = val;
       renderPreview();
     }
     function updateDesignerName(val){
-      designerName= val;
+      designerName = val;
       renderPreview();
     }
 
@@ -597,7 +597,7 @@
       renderPreview();
     }
 
-    /* Steps: printing, assembling, packaging */
+    /* Steps: printing, assembling, packaging (declared once) */
     let printingSteps=[];
     let assemblingSteps=[];
     let packagingStepsArr=[];
@@ -618,7 +618,7 @@
       for(let i=0;i<arr.length;i++){
         const item=arr[i];
         if(item.type==='divider'){
-          // divider row
+          // Divider
           const tr=document.createElement('tr');
           const td=document.createElement('td');
           td.colSpan=3;
@@ -643,8 +643,7 @@
           tdLabel.innerHTML=`
             Step ${stepCounter}:
             <button class="btn btn-remove" onclick="removeStep('${section}',${i})">x</button>
-            <button class="btn btn-divider" style="float:right;"
-                    onclick="addDividerAbove('${section}',${i})">
+            <button class="btn btn-divider" style="float:right;" onclick="addDividerAbove('${section}',${i})">
               + Divider
             </button>
           `;
@@ -665,15 +664,11 @@
           const tdPhoto=document.createElement('td');
           if(item.photo){
             tdPhoto.innerHTML=`
-              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">
-                Edit Photo
-              </button>
+              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">Edit Photo</button>
             `;
           } else {
             tdPhoto.innerHTML=`
-              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">
-                Add Photo
-              </button>
+              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">Add Photo</button>
             `;
           }
           tr.appendChild(tdPhoto);
@@ -683,7 +678,7 @@
         }
       }
 
-      // if no steps
+      // if none
       if(arr.length===0){
         const noTr=document.createElement('tr');
         const noTd=document.createElement('td');
@@ -695,7 +690,7 @@
         tableBody.appendChild(noTr);
       }
 
-      // final row => +Add Step
+      // final row => add step
       const addTr=document.createElement('tr');
       const addTd=document.createElement('td');
       addTd.colSpan=3;
@@ -712,7 +707,7 @@
       const arr=getStepsArray(section);
       if(i<0) i=-1;
       const newStep={ type:'step', instructions:'', photo:'', photoSize:'m' };
-      arr.splice(i+1, 0, newStep);
+      arr.splice(i+1,0,newStep);
       rebuildStepsTable(section);
       focusStepTextarea(section, i+1);
     }
@@ -755,7 +750,6 @@
       if(e.key==='Enter'){
         e.preventDefault();
         const arr=getStepsArray(section);
-        // only add step if next is a divider or end
         if(idx+1< arr.length && arr[idx+1].type!=='divider'){
           return;
         }
@@ -919,6 +913,7 @@
               item.appendChild(s);
             }
             if(m.link){
+              // clickable link in PDF
               const lP=document.createElement('p');
               const a=document.createElement('a');
               a.href=m.link;
@@ -1070,7 +1065,7 @@
       });
     }
 
-    /* Download PDF with clickable links & less margin */
+    /* Download PDF with clickable links & less margin, no integrity */
     function downloadPDF(){
       if(!jsPDF||!window.html2canvas){
         alert("jsPDF or html2canvas not loaded properly.");
@@ -1084,10 +1079,10 @@
         width:592,
         autoPaging:'text',
         overflow:'ellipsize',
-        enableLinks:true, /* Make links clickable */
+        enableLinks:true,
         html2canvas:{
           backgroundColor:'#ffffff',
-          useCORS:true, /* load cross‐origin images & links properly */
+          useCORS:true, /* helpful for GitHub Pages or cross-origin images */
           scale:1
         }
       });
