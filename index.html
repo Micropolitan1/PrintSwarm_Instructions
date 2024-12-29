@@ -1046,77 +1046,74 @@
       }
     }
 
-    function renderStepsArray(arr, containerEl) {
-      let stepNum = 1;
-      arr.forEach(async (item) => {
-        if (item.type === 'divider') {
-          const divHeading = document.createElement('div');
-          divHeading.className = 'divider-heading';
-          divHeading.textContent = item.title;
-          containerEl.appendChild(divHeading);
-          stepNum = 1;
-        } else {
-          const stDiv = document.createElement('div');
-          stDiv.className = 'preview-step';
-          if (item.photo) {
-            const img = document.createElement('img');
-            // Try to resize large images
-            try {
-              const resizedPhoto = await resizeImage(item.photo);
-              img.src = resizedPhoto;
-            } catch {
-              img.src = item.photo; // Fallback to original if resize fails
+      function renderStepsArray(arr, containerEl) {
+        let stepNum = 1;
+        
+        // Process images sequentially
+        const processSteps = async () => {
+          for (const item of arr) {
+            if (item.type === 'divider') {
+              const divHeading = document.createElement('div');
+              divHeading.className = 'divider-heading';
+              divHeading.textContent = item.title;
+              containerEl.appendChild(divHeading);
+              stepNum = 1;
+            } else {
+              const stDiv = document.createElement('div');
+              stDiv.className = 'preview-step';
+              if (item.photo) {
+                // Create and process image
+                const img = document.createElement('img');
+                const processedImage = await new Promise((resolve) => {
+                  const tempImg = new Image();
+                  tempImg.onload = () => {
+                    // Only resize if image is too large
+                    if (tempImg.width > 1200 || tempImg.height > 1200) {
+                      const canvas = document.createElement('canvas');
+                      const ctx = canvas.getContext('2d');
+                      let width = tempImg.width;
+                      let height = tempImg.height;
+                      
+                      if (width > 1200) {
+                        height *= 1200 / width;
+                        width = 1200;
+                      }
+                      if (height > 1200) {
+                        width *= 1200 / height;
+                        height = 1200;
+                      }
+                      
+                      canvas.width = width;
+                      canvas.height = height;
+                      ctx.drawImage(tempImg, 0, 0, width, height);
+                      resolve(canvas.toDataURL('image/jpeg', 0.85));
+                    } else {
+                      resolve(item.photo);
+                    }
+                  };
+                  tempImg.src = item.photo;
+                });
+                
+                img.src = processedImage;
+                img.classList.add(`img-size-${item.photoSize}`);
+                stDiv.appendChild(img);
+              }
+              if (item.instructions) {
+                let clean = item.instructions.trim().replace(/\n+/g, '. ');
+                const p = document.createElement('p');
+                p.textContent = `Step ${stepNum}: ${clean}`;
+                stDiv.appendChild(p);
+              }
+              containerEl.appendChild(stDiv);
+              stepNum++;
             }
-            img.classList.add(`img-size-${item.photoSize}`);
-            stDiv.appendChild(img);
           }
-          if (item.instructions) {
-            let clean = item.instructions.trim().replace(/\n+/g, '. ');
-            const p = document.createElement('p');
-            p.textContent = `Step ${stepNum}: ${clean}`;
-            stDiv.appendChild(p);
-          }
-          containerEl.appendChild(stDiv);
-          stepNum++;
-        }
-      });
-    }
+        };
+        
+        // Execute the async function
+        processSteps();
+      }
 
-      /* Download PDF => no integrity => GH Pages friendly */
-/* Render Preview */
-function renderStepsArray(arr, containerEl) {
-  let stepNum = 1;
-  arr.forEach((item, index) => {
-    if (item.type === 'divider') {
-      const divHeading = document.createElement('div');
-      divHeading.className = 'divider-heading';
-      divHeading.textContent = item.title;
-      containerEl.appendChild(divHeading);
-      stepNum = 1;
-    } else {
-      const stDiv = document.createElement('div');
-      stDiv.className = 'preview-step';
-      if (item.photo) {
-        console.log(`Step ${stepNum} photo:`, item.photo.substring(0, 100) + '...'); // Debug log
-        const img = document.createElement('img');
-        img.src = item.photo;
-        img.classList.add(`img-size-${item.photoSize}`);
-        // Add loading and error handlers
-        img.onload = () => console.log(`Image ${stepNum} loaded successfully`);
-        img.onerror = () => console.error(`Image ${stepNum} failed to load`);
-        stDiv.appendChild(img);
-      }
-      if (item.instructions) {
-        let clean = item.instructions.trim().replace(/\n+/g, '. ');
-        const p = document.createElement('p');
-        p.textContent = `Step ${stepNum}: ${clean}`;
-        stDiv.appendChild(p);
-      }
-      containerEl.appendChild(stDiv);
-      stepNum++;
-    }
-  });
-}
 
       function downloadPDF() {
         if (!jsPDF || !window.html2canvas) {
@@ -1125,20 +1122,19 @@ function renderStepsArray(arr, containerEl) {
         }
       
         const pdfPage = document.getElementById('pdfPreviewPage');
-        const clone = pdfPage.cloneNode(true);
         
-        // Process all images before generating PDF
-        Promise.all(Array.from(clone.getElementsByTagName('img'))
-          .map(img => new Promise(async (resolve) => {
-            try {
-              const resized = await resizeImage(img.src);
-              img.src = resized;
+        // Wait for all images to load and process
+        Promise.all(Array.from(pdfPage.getElementsByTagName('img'))
+          .map(img => new Promise((resolve) => {
+            if (img.complete) {
               resolve();
-            } catch {
-              resolve(); // Continue even if resize fails
+            } else {
+              img.onload = resolve;
             }
           })))
           .then(() => {
+            const clone = pdfPage.cloneNode(true);
+            
             const doc = new jsPDF('p', 'pt', 'letter');
             doc.html(clone, {
               callback: function(pdf) {
@@ -1150,83 +1146,25 @@ function renderStepsArray(arr, containerEl) {
               autoPaging: 'text',
               html2canvas: {
                 backgroundColor: '#ffffff',
-                scale: 1,
+                scale: 2,  // Increased scale for better quality
                 imageTimeout: 30000,
                 useCORS: true,
-                logging: true
-              }
-            });
-          });
-      }
-            
-        // Create a clone and wait for images to load
-        const clone = pdfPage.cloneNode(true);
-        const imagePromises = Array.from(clone.getElementsByTagName('img'))
-          .map(img => {
-            return new Promise((resolve, reject) => {
-              if (img.complete) {
-                console.log('Image already loaded:', img.src.substring(0, 100) + '...');
-                resolve();
-              } else {
-                console.log('Waiting for image to load:', img.src.substring(0, 100) + '...');
-                img.onload = () => {
-                  console.log('Image loaded:', img.src.substring(0, 100) + '...');
-                  resolve();
-                };
-                img.onerror = () => {
-                  console.error('Image failed to load:', img.src.substring(0, 100) + '...');
-                  reject(new Error(`Failed to load image: ${img.src}`));
-                };
-              }
-            });
-          });
-      
-        Promise.all(imagePromises)
-          .then(() => {
-            const doc = new jsPDF('p', 'pt', 'letter');
-            
-            doc.html(clone, {
-              callback: function(pdf) {
-                // Add links as annotations
-                clone.querySelectorAll('a').forEach(a => {
-                  const url = a.getAttribute('data-url') || a.href;
-                  if (url) {
-                    const rect = a.getBoundingClientRect();
-                    pdf.link(rect.left + 10, rect.top + 10, rect.width, rect.height, { url });
-                  }
-                });
-                pdf.save('instructions.pdf');
-              },
-              x: 10,
-              y: 10,
-              width: 592,
-              autoPaging: 'text',
-              overflow: 'ellipsize',
-              html2canvas: {
-                backgroundColor: '#ffffff',
-                useCORS: true,
-                scale: 1,
                 logging: true,
-                imageTimeout: 30000, // 30 second timeout
                 onclone: function(clonedDoc) {
                   clonedDoc.querySelectorAll('img').forEach(img => {
                     img.style.maxWidth = '100%';
-                    img.style.display = 'block'; // Ensure image is displayed
+                    img.style.display = 'block';
                     img.crossOrigin = 'anonymous';
-                  });
-                  clonedDoc.querySelectorAll('a').forEach(a => {
-                    a.style.color = '#0066cc';
-                    a.style.textDecoration = 'underline';
                   });
                 }
               }
             });
-          })
-          .catch(error => {
-            console.error('Error during PDF generation:', error);
-            alert('There was an error generating the PDF. Please check the console for details.');
           });
       }
+
+
+
+    
     
     // Also modify how links are created in the renderPreview function
     function createMaterialLink(url) {
