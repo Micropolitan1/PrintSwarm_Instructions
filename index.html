@@ -4,24 +4,31 @@
   <meta charset="UTF-8"/>
   <title>3D Printed Product Instructions Generator</title>
 
-  <!-- 1) html2canvas (no integrity attribute!) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+  <!-- 1) html2canvas: No integrity attributes -->
+  <script 
+    src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+    crossorigin="anonymous">
+  </script>
 
-  <!-- 2) jsPDF (no integrity) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+  <!-- 2) jsPDF: No integrity attributes -->
+  <script 
+    src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    crossorigin="anonymous">
+  </script>
 
-  <!-- 3) Cropper.js CSS & JS (no integrity) -->
+  <!-- 3) Cropper.js: CSS & JS, no integrity, so GH Pages won't block them -->
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"
     crossorigin="anonymous"
 />
-  <script
+  <script 
     src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"
-    crossorigin="anonymous"></script>
+    crossorigin="anonymous">
+  </script>
 
   <style>
-    /* Force white backgrounds & remove shadows for a clean PDF. */
+    /* Force white BG & remove shadows for a clean PDF. */
     body {
       margin: 0;
       padding: 20px;
@@ -39,6 +46,8 @@
       margin: 0;
       font-size: 1rem;
     }
+
+    /* Buttons (global style) */
     .btn {
       display: inline-block;
       padding: 4px 10px;
@@ -76,6 +85,7 @@
       color: #fff;
     }
 
+    /* Main container */
     .container {
       display: flex;
       gap: 20px;
@@ -100,6 +110,7 @@
       font-size: 0.8rem; /* smaller text for preview */
     }
 
+    /* Form Row */
     .form-row {
       display: flex;
       gap: 10px;
@@ -117,6 +128,7 @@
       border-radius: 4px;
     }
 
+    /* Form sections */
     .form-section {
       background: #fff !important;
       border: 1px solid #ddd;
@@ -157,7 +169,7 @@
       white-space: nowrap;
     }
 
-    /* The PDF-page with smaller margin => x=10, width=592 in doc.html() */
+    /* PDF page: narrower margins => x=10, width=592 in doc.html(...) */
     .pdf-page {
       width: 612px;
       min-height: 50px;
@@ -170,7 +182,7 @@
       box-shadow: none;
     }
 
-    /* No left indentation in steps */
+    /* Steps in preview: no left indentation, etc. */
     .preview-step {
       margin-bottom: 8px;
       word-wrap: break-word;
@@ -209,14 +221,14 @@
       margin-bottom: 6px;
     }
 
-    /* Step image sizes (XS to XL) */
+    /* Step image sizes */
     .img-size-xs { width: 10%; }
     .img-size-s { width: 25%; }
     .img-size-m { width: 50%; }
     .img-size-l { width: 75%; }
     .img-size-xl { width: 100%; }
 
-    /* Materials grid - small icons => max-height=70px */
+    /* Materials grid: small icons => max-height=70px */
     .materials-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -243,7 +255,7 @@
       font-size: 0.8rem;
     }
 
-    /* Modal for Photo, Crop, Divider */
+    /* Modal for Photo, Crop, Dividers */
     .modal {
       position: fixed;
       z-index: 9999;
@@ -290,9 +302,10 @@
       font-size: 0.75rem;
     }
   </style>
-</head>
 
+</head>
 <body>
+  <!-- Toolbar -->
   <div class="toolbar">
     <h1>3D Printed Product Instructions Generator</h1>
     <button class="btn btn-primary" onclick="downloadPDF()">Download PDF</button>
@@ -315,12 +328,12 @@
   </div>
 
   <div class="container">
-    <!-- LEFT side: The forms -->
+    <!-- LEFT side: forms -->
     <div class="form-container">
-
-      <!-- Materials: Filament & Other -->
+      <!-- Materials -->
       <div class="form-section">
         <h2>Materials</h2>
+        
         <h3>Filament</h3>
         <div id="filamentMaterialsContainer"></div>
         <button class="btn btn-add" onclick="addFilamentMaterial()">+ Add Filament</button>
@@ -330,7 +343,7 @@
         <button class="btn btn-add" onclick="addOtherMaterial()">+ Add Other</button>
       </div>
 
-      <!-- PACKAGING MATERIALS -->
+      <!-- PACKAGING Materials -->
       <div class="form-section">
         <h2>Packaging Materials</h2>
         <div id="packagingMaterialsContainer"></div>
@@ -381,10 +394,9 @@
           <tbody></tbody>
         </table>
       </div>
-
     </div>
 
-    <!-- RIGHT side: Live Preview -->
+    <!-- RIGHT side: live preview -->
     <div class="preview-container">
       <h2>Live Preview</h2>
       <div class="pdf-page" id="pdfPreviewPage"></div>
@@ -396,7 +408,6 @@
     <div class="modal-content">
       <button class="close-button" onclick="closePhotoPopup()">X</button>
       <div class="modal-header">Add/Edit Photo</div>
-
       <label>Choose File (optional):</label>
       <input type="file" accept="image/*" id="photoFileInput" />
 
@@ -404,7 +415,7 @@
               style="background:#28a745;color:#fff;padding:3px 8px;border:none;border-radius:4px;font-size:0.75rem;cursor:pointer;"
               onclick="openCropperFromPopup()">Crop</button>
 
-      <label>Size (XS to XL for Steps Only):</label>
+      <label>Size (XS–XL for Steps Only):</label>
       <select id="photoSizeSelect">
         <option value="xs">XS (10%)</option>
         <option value="s">S (25%)</option>
@@ -447,39 +458,41 @@
   </div>
 
   <script>
-    /* ==================== GLOBAL STATE ==================== */
+    /* ==================== GLOBALS (ONCE) ==================== */
     const { jsPDF } = window.jspdf || {};
 
-    let instructionsTitle = '';
-    let designerName = '';
+    let instructionsTitle='';
+    let designerName='';
 
-    /* Materials arrays */
-    let filamentMaterials = [];
-    let otherMaterials = [];
-    let packagingMaterials = [];
+    let filamentMaterials=[];
+    let otherMaterials=[];
+    let packagingMaterials=[];
 
-    /* Steps arrays (once only!) */
-    let printingSteps = [];
-    let assemblingSteps = [];
-    let packagingStepsArr = [];
+    let printingSteps=[];
+    let assemblingSteps=[];
+    let packagingStepsArr=[];
 
-    let cropper = null;
-    let currentPhotoPopup = { section:'', index:-1, photo:'', photoSize:'m' };
-    let rawFileBase64 = '';
+    let cropper=null;
+    let currentPhotoPopup={ section:'', index:-1, photo:'', photoSize:'m' };
+    let rawFileBase64='';
 
-    let currentDividerData = { section:'', index:-1 };
+    let currentDividerData={ section:'', index:-1 };
 
-    /* Title & Designer */
-    function updateInstructionsTitle(val){
-      instructionsTitle = val;
+    /* ==================== Title & Designer ==================== */
+    window.updateInstructionsTitle=function(val){
+      instructionsTitle= val;
       renderPreview();
-    }
-    function updateDesignerName(val){
-      designerName = val;
+    };
+    window.updateDesignerName=function(val){
+      designerName= val;
       renderPreview();
-    }
+    };
 
-    /* Filament */
+    /* ==================== Filament Materials ==================== */
+    window.addFilamentMaterial=function(){
+      filamentMaterials.push({ name:'', link:'', description:'', photo:'' });
+      rebuildFilamentList();
+    };
     function rebuildFilamentList(){
       const c=document.getElementById('filamentMaterialsContainer');
       c.innerHTML='';
@@ -487,7 +500,8 @@
         const div=document.createElement('div');
         div.className='item-form';
         div.innerHTML=`
-          <button class="btn btn-remove" style="float:right;" onclick="removeFilamentMaterial(${i})">Remove</button>
+          <button class="btn btn-remove" style="float:right;"
+                  onclick="removeFilamentMaterial(${i})">Remove</button>
           <label>Name:</label>
           <input type="text" value="${m.name||''}"
                  oninput="updateFilamentField(${i},'name',this.value)" />
@@ -506,20 +520,20 @@
       });
       renderPreview();
     }
-    function addFilamentMaterial(){
-      filamentMaterials.push({ name:'', link:'', description:'', photo:'' });
-      rebuildFilamentList();
-    }
-    function removeFilamentMaterial(i){
+    window.removeFilamentMaterial=function(i){
       filamentMaterials.splice(i,1);
       rebuildFilamentList();
-    }
-    function updateFilamentField(i,field,val){
+    };
+    window.updateFilamentField=function(i,field,val){
       filamentMaterials[i][field]=val;
       renderPreview();
-    }
+    };
 
-    /* Other */
+    /* ==================== Other Materials ==================== */
+    window.addOtherMaterial=function(){
+      otherMaterials.push({ name:'', link:'', description:'', photo:'' });
+      rebuildOtherList();
+    };
     function rebuildOtherList(){
       const c=document.getElementById('otherMaterialsContainer');
       c.innerHTML='';
@@ -546,20 +560,20 @@
       });
       renderPreview();
     }
-    function addOtherMaterial(){
-      otherMaterials.push({ name:'', link:'', description:'', photo:'' });
-      rebuildOtherList();
-    }
-    function removeOtherMaterial(i){
+    window.removeOtherMaterial=function(i){
       otherMaterials.splice(i,1);
       rebuildOtherList();
-    }
-    function updateOtherField(i,field,val){
+    };
+    window.updateOtherField=function(i,field,val){
       otherMaterials[i][field]=val;
       renderPreview();
-    }
+    };
 
-    /* Packaging */
+    /* ==================== Packaging Materials ==================== */
+    window.addPackagingMaterial=function(){
+      packagingMaterials.push({ name:'', description:'', photo:'' });
+      rebuildPackagingMaterials();
+    };
     function rebuildPackagingMaterials(){
       const c=document.getElementById('packagingMaterialsContainer');
       c.innerHTML='';
@@ -584,24 +598,16 @@
       });
       renderPreview();
     }
-    function addPackagingMaterial(){
-      packagingMaterials.push({ name:'', description:'', photo:'' });
-      rebuildPackagingMaterials();
-    }
-    function removePackagingMaterial(i){
+    window.removePackagingMaterial=function(i){
       packagingMaterials.splice(i,1);
       rebuildPackagingMaterials();
-    }
-    function updatePackagingField(i,field,val){
+    };
+    window.updatePackagingField=function(i,field,val){
       packagingMaterials[i][field]=val;
       renderPreview();
-    }
+    };
 
-    /* Steps: printing, assembling, packaging (declared once) */
-    let printingSteps=[];
-    let assemblingSteps=[];
-    let packagingStepsArr=[];
-
+    /* ==================== Steps: printing, assembling, packaging ==================== */
     function getStepsArray(section){
       if(section==='printing') return printingSteps;
       if(section==='assembling') return assemblingSteps;
@@ -615,10 +621,10 @@
       tableBody.innerHTML='';
 
       let stepCounter=1;
-      for(let i=0;i<arr.length;i++){
+      for(let i=0; i<arr.length; i++){
         const item=arr[i];
         if(item.type==='divider'){
-          // Divider
+          // divider row
           const tr=document.createElement('tr');
           const td=document.createElement('td');
           td.colSpan=3;
@@ -664,11 +670,15 @@
           const tdPhoto=document.createElement('td');
           if(item.photo){
             tdPhoto.innerHTML=`
-              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">Edit Photo</button>
+              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">
+                Edit Photo
+              </button>
             `;
           } else {
             tdPhoto.innerHTML=`
-              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">Add Photo</button>
+              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">
+                Add Photo
+              </button>
             `;
           }
           tr.appendChild(tdPhoto);
@@ -678,7 +688,6 @@
         }
       }
 
-      // if none
       if(arr.length===0){
         const noTr=document.createElement('tr');
         const noTd=document.createElement('td');
@@ -703,14 +712,15 @@
       renderPreview();
     }
 
-    function addStepAfter(section, i){
+    window.addStepAfter=function(section, i){
       const arr=getStepsArray(section);
       if(i<0) i=-1;
       const newStep={ type:'step', instructions:'', photo:'', photoSize:'m' };
       arr.splice(i+1,0,newStep);
       rebuildStepsTable(section);
       focusStepTextarea(section, i+1);
-    }
+    };
+
     function focusStepTextarea(section, idx){
       setTimeout(()=>{
         const tableBody=document.getElementById(section+'StepsTable').querySelector('tbody');
@@ -720,20 +730,23 @@
         if(ta) ta.focus();
       },50);
     }
-    function removeStep(section, idx){
+
+    window.removeStep=function(section, idx){
       const arr=getStepsArray(section);
       arr.splice(idx,1);
       rebuildStepsTable(section);
-    }
-    function addDividerAbove(section, i){
+    };
+
+    window.addDividerAbove=function(section, i){
       currentDividerData={ section, index:i-1 };
       document.getElementById('dividerTitleInput').value='';
       document.getElementById('dividerPopup').style.display='flex';
-    }
-    function closeDividerPopup(){
+    };
+
+    window.closeDividerPopup=function(){
       document.getElementById('dividerPopup').style.display='none';
-    }
-    function applyDivider(){
+    };
+    window.applyDivider=function(){
       const t=document.getElementById('dividerTitleInput').value.trim();
       if(!t){
         alert("Please enter a divider title.");
@@ -745,25 +758,26 @@
       arr.splice(idx+1,0,{type:'divider',title:t});
       closeDividerPopup();
       rebuildStepsTable(currentDividerData.section);
-    }
-    function stepKeyDown(e, section, idx){
+    };
+
+    window.stepKeyDown=function(e, section, idx){
       if(e.key==='Enter'){
         e.preventDefault();
         const arr=getStepsArray(section);
-        if(idx+1< arr.length && arr[idx+1].type!=='divider'){
+        if(idx+1<arr.length && arr[idx+1].type!=='divider'){
           return;
         }
         addStepAfter(section, idx);
       }
-    }
-    function updateStepInstructions(section, idx, val){
+    };
+    window.updateStepInstructions=function(section, idx, val){
       const arr=getStepsArray(section);
       if(!arr[idx])return;
       arr[idx].instructions= val;
       renderPreview();
-    }
+    };
 
-    /* Photo logic */
+    /* Photo / Crop logic */
     document.getElementById('photoFileInput').addEventListener('change',function(){
       const file=this.files[0];
       if(!file)return;
@@ -774,7 +788,7 @@
       reader.readAsDataURL(file);
     });
 
-    function openPhotoPopup(section, idx){
+    window.openPhotoPopup=function(section, idx){
       currentPhotoPopup={ section, index:idx, photo:'', photoSize:'m' };
       rawFileBase64='';
 
@@ -789,12 +803,13 @@
       document.getElementById('photoSizeSelect').value=currentPhotoPopup.photoSize;
       const remBtn=document.querySelector('.remove-photo-btn');
       remBtn.style.display=(item.photo)?'inline-block':'none';
+
       document.getElementById('photoPopup').style.display='flex';
-    }
-    function closePhotoPopup(){
+    };
+    window.closePhotoPopup=function(){
       document.getElementById('photoPopup').style.display='none';
-    }
-    function removePhotoInPopup(){
+    };
+    window.removePhotoInPopup=function(){
       let arr=getArrayForSection(currentPhotoPopup.section);
       let item=arr[currentPhotoPopup.index];
       item.photo='';
@@ -802,11 +817,12 @@
       currentPhotoPopup.photo='';
       renderPreview();
       document.querySelector('.remove-photo-btn').style.display='none';
-    }
-    function applyPhotoPopup(){
+    };
+    window.applyPhotoPopup=function(){
       let arr=getArrayForSection(currentPhotoPopup.section);
       let item=arr[currentPhotoPopup.index];
       if(rawFileBase64) currentPhotoPopup.photo=rawFileBase64;
+
       item.photo=currentPhotoPopup.photo;
       item.photoSize=document.getElementById('photoSizeSelect').value;
       closePhotoPopup();
@@ -815,11 +831,11 @@
       else if(currentPhotoPopup.section==='other') rebuildOtherList();
       else if(currentPhotoPopup.section==='packagingMaterials') rebuildPackagingMaterials();
       else rebuildStepsTable(currentPhotoPopup.section);
-    }
+    };
 
-    /* Cropper */
+    /* Cropper logic */
     let theCropper=null;
-    function openCropperFromPopup(){
+    window.openCropperFromPopup=function(){
       let base64=(rawFileBase64)? rawFileBase64 : currentPhotoPopup.photo;
       if(!base64){
         alert("No image selected or existing photo to crop.");
@@ -828,16 +844,16 @@
       document.getElementById('cropperModal').style.display='flex';
       const img=document.getElementById('cropperImage');
       img.src=base64;
-      if(theCropper){ theCropper.destroy(); theCropper=null; }
+      if(theCropper){theCropper.destroy();theCropper=null;}
       setTimeout(()=>{
         theCropper=new Cropper(img,{ aspectRatio:NaN, viewMode:1, movable:true, zoomable:true });
       },100);
-    }
-    function closeCropperModal(){
+    };
+    window.closeCropperModal=function(){
       document.getElementById('cropperModal').style.display='none';
-      if(theCropper){ theCropper.destroy(); theCropper=null; }
-    }
-    function applyCrop(){
+      if(theCropper){theCropper.destroy();theCropper=null;}
+    };
+    window.applyCrop=function(){
       if(!theCropper)return;
       const canvas=theCropper.getCroppedCanvas();
       if(!canvas)return;
@@ -845,7 +861,7 @@
       currentPhotoPopup.photo=croppedBase64;
       rawFileBase64='';
       closeCropperModal();
-    }
+    };
 
     function getArrayForSection(section){
       if(section==='filament') return filamentMaterials;
@@ -913,7 +929,6 @@
               item.appendChild(s);
             }
             if(m.link){
-              // clickable link in PDF
               const lP=document.createElement('p');
               const a=document.createElement('a');
               a.href=m.link;
@@ -1054,7 +1069,7 @@
             stDiv.appendChild(img);
           }
           if(item.instructions){
-            let clean=item.instructions.trim().replace(/\n+/g, '. ');
+            let clean=item.instructions.trim().replace(/\n+/g,'. ');
             const p=document.createElement('p');
             p.textContent=`Step ${stepNum}: ${clean}`;
             stDiv.appendChild(p);
@@ -1065,8 +1080,8 @@
       });
     }
 
-    /* Download PDF with clickable links & less margin, no integrity */
-    function downloadPDF(){
+    /* Download PDF with clickable links, no integrity etc. */
+    window.downloadPDF=function(){
       if(!jsPDF||!window.html2canvas){
         alert("jsPDF or html2canvas not loaded properly.");
         return;
@@ -1082,13 +1097,13 @@
         enableLinks:true,
         html2canvas:{
           backgroundColor:'#ffffff',
-          useCORS:true, /* helpful for GitHub Pages or cross-origin images */
+          useCORS:true,
           scale:1
         }
       });
-    }
+    };
 
-    /* On load: create empty forms & preview */
+    /* On window load => build everything once */
     window.onload=function(){
       rebuildFilamentList();
       rebuildOtherList();
