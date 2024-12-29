@@ -1041,57 +1041,74 @@
     }
 
     /* Download PDF => no integrity => GH Pages friendly */
-  function downloadPDF() {
-    if (!jsPDF || !window.html2canvas) {
-      alert("jsPDF or html2canvas not loaded properly.");
-      return;
+    function downloadPDF() {
+      if (!jsPDF || !window.html2canvas) {
+        alert("jsPDF or html2canvas not loaded properly.");
+        return;
+      }
+    
+      // Create a clone of the preview page to modify for PDF generation
+      const pdfPage = document.getElementById('pdfPreviewPage');
+      const clone = pdfPage.cloneNode(true);
+      
+      // Add data attributes to links to preserve URLs
+      clone.querySelectorAll('a').forEach(a => {
+        a.setAttribute('data-url', a.href);
+        // Use relative positioning to help maintain link positions
+        a.style.position = 'relative';
+      });
+    
+      const doc = new jsPDF('p', 'pt', 'letter');
+      
+      doc.html(clone, {
+        callback: function(doc) {
+          // Process each link after rendering
+          pdfPage.querySelectorAll('a').forEach(a => {
+            const url = a.href;
+            if (url) {
+              // Add an annotation for each link
+              doc.link(a.offsetLeft + 10, a.offsetTop + 10, a.offsetWidth, a.offsetHeight, { url: url });
+            }
+          });
+          doc.save('instructions.pdf');
+        },
+        x: 10,
+        y: 10,
+        width: 592,
+        autoPaging: 'text',
+        overflow: 'ellipsize',
+        html2canvas: {
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          scale: 1,
+          // Ensure links are captured properly
+          onclone: function(clonedDoc) {
+            clonedDoc.querySelectorAll('a').forEach(a => {
+              // Ensure link styling is preserved
+              a.style.color = '#0066cc';
+              a.style.textDecoration = 'underline';
+            });
+          }
+        }
+      });
     }
     
-    const doc = new jsPDF('p', 'pt', 'letter');
-    const pdfPage = document.getElementById('pdfPreviewPage');
-    
-    // First, collect all links and their positions
-    const links = [];
-    pdfPage.querySelectorAll('a').forEach(a => {
-      const rect = a.getBoundingClientRect();
-      links.push({
-        url: a.href,
-        x: rect.left,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height,
-        text: a.textContent
-      });
-    });
-    
-    // Then generate the PDF
-    doc.html(pdfPage, {
-      callback: function(pdf) {
-        // Add clickable links after the page is rendered
-        links.forEach(link => {
-          pdf.link(
-            link.x + 10, // Add offset to match doc.html x position
-            link.y + 10, // Add offset to match doc.html y position
-            link.width,
-            link.height,
-            { url: link.url }
-          );
-        });
-        
-        pdf.save('instructions.pdf');
-      },
-      x: 10,
-      y: 10,
-      width: 592,
-      autoPaging: 'text',
-      overflow: 'ellipsize',
-      html2canvas: {
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        scale: 1
-      }
-    });
-  }
+    // Also modify how links are created in the renderPreview function
+    function createMaterialLink(url) {
+      const lP = document.createElement('p');
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.textContent = 'Link';
+      // Add specific styling for PDF conversion
+      a.style.color = '#0066cc';
+      a.style.textDecoration = 'underline';
+      a.style.cursor = 'pointer';
+      // Add data attribute to help with PDF conversion
+      a.setAttribute('data-url', url);
+      lP.appendChild(a);
+      return lP;
+    }
 
     /* On window load => build empty forms & preview. */
     window.onload=function(){
