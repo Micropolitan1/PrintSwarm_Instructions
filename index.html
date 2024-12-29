@@ -1048,6 +1048,41 @@
     }
 
       /* Download PDF => no integrity => GH Pages friendly */
+/* Render Preview */
+function renderStepsArray(arr, containerEl) {
+  let stepNum = 1;
+  arr.forEach((item, index) => {
+    if (item.type === 'divider') {
+      const divHeading = document.createElement('div');
+      divHeading.className = 'divider-heading';
+      divHeading.textContent = item.title;
+      containerEl.appendChild(divHeading);
+      stepNum = 1;
+    } else {
+      const stDiv = document.createElement('div');
+      stDiv.className = 'preview-step';
+      if (item.photo) {
+        console.log(`Step ${stepNum} photo:`, item.photo.substring(0, 100) + '...'); // Debug log
+        const img = document.createElement('img');
+        img.src = item.photo;
+        img.classList.add(`img-size-${item.photoSize}`);
+        // Add loading and error handlers
+        img.onload = () => console.log(`Image ${stepNum} loaded successfully`);
+        img.onerror = () => console.error(`Image ${stepNum} failed to load`);
+        stDiv.appendChild(img);
+      }
+      if (item.instructions) {
+        let clean = item.instructions.trim().replace(/\n+/g, '. ');
+        const p = document.createElement('p');
+        p.textContent = `Step ${stepNum}: ${clean}`;
+        stDiv.appendChild(p);
+      }
+      containerEl.appendChild(stDiv);
+      stepNum++;
+    }
+  });
+}
+
       function downloadPDF() {
         if (!jsPDF || !window.html2canvas) {
           alert("jsPDF or html2canvas not loaded properly.");
@@ -1055,31 +1090,54 @@
         }
       
         const pdfPage = document.getElementById('pdfPreviewPage');
-        const clone = pdfPage.cloneNode(true);
         
-        // Force image rendering and loading
-        const images = clone.getElementsByTagName('img');
-        const imagePromises = Array.from(images).map(img => {
-          return new Promise((resolve, reject) => {
-            const newImg = new Image();
-            newImg.onload = () => {
-              img.src = newImg.src;  // Replace with fully loaded image
-              resolve();
-            };
-            newImg.onerror = reject;
-            newImg.src = img.src;
+        // Debug: Log the full content structure
+        console.log("PDF page content:", pdfPage.innerHTML);
+        
+        // Debug: Log all images and their details
+        console.log("Images before PDF generation:");
+        pdfPage.querySelectorAll('img').forEach((img, index) => {
+          console.log(`Image ${index}:`, {
+            src: img.src.substring(0, 100) + '...',
+            width: img.width,
+            height: img.height,
+            naturalWidth: img.naturalWidth,
+            naturalHeight: img.naturalHeight,
+            complete: img.complete,
+            className: img.className
           });
         });
       
-        // Wait for all images to load before generating PDF
+        // Create a clone and wait for images to load
+        const clone = pdfPage.cloneNode(true);
+        const imagePromises = Array.from(clone.getElementsByTagName('img'))
+          .map(img => {
+            return new Promise((resolve, reject) => {
+              if (img.complete) {
+                console.log('Image already loaded:', img.src.substring(0, 100) + '...');
+                resolve();
+              } else {
+                console.log('Waiting for image to load:', img.src.substring(0, 100) + '...');
+                img.onload = () => {
+                  console.log('Image loaded:', img.src.substring(0, 100) + '...');
+                  resolve();
+                };
+                img.onerror = () => {
+                  console.error('Image failed to load:', img.src.substring(0, 100) + '...');
+                  reject(new Error(`Failed to load image: ${img.src}`));
+                };
+              }
+            });
+          });
+      
         Promise.all(imagePromises)
           .then(() => {
             const doc = new jsPDF('p', 'pt', 'letter');
             
             doc.html(clone, {
               callback: function(pdf) {
-                // Process links
-                pdfPage.querySelectorAll('a').forEach(a => {
+                // Add links as annotations
+                clone.querySelectorAll('a').forEach(a => {
                   const url = a.getAttribute('data-url') || a.href;
                   if (url) {
                     const rect = a.getBoundingClientRect();
@@ -1097,15 +1155,14 @@
                 backgroundColor: '#ffffff',
                 useCORS: true,
                 scale: 1,
-                logging: true, // Enable logging for debugging
-                imageTimeout: 5000, // 5 second timeout for images
+                logging: true,
+                imageTimeout: 30000, // 30 second timeout
                 onclone: function(clonedDoc) {
-                  // Ensure all images are properly loaded in clone
                   clonedDoc.querySelectorAll('img').forEach(img => {
                     img.style.maxWidth = '100%';
-                    img.style.objectFit = 'contain';
+                    img.style.display = 'block'; // Ensure image is displayed
+                    img.crossOrigin = 'anonymous';
                   });
-                  // Style links
                   clonedDoc.querySelectorAll('a').forEach(a => {
                     a.style.color = '#0066cc';
                     a.style.textDecoration = 'underline';
@@ -1115,8 +1172,8 @@
             });
           })
           .catch(error => {
-            console.error('Error loading images:', error);
-            alert('There was an error generating the PDF. Please try again.');
+            console.error('Error during PDF generation:', error);
+            alert('There was an error generating the PDF. Please check the console for details.');
           });
       }
     
