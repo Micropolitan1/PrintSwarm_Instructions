@@ -452,6 +452,38 @@
 
     let currentDividerData={ section:'', index:-1 };
 
+    // Add this helper function at the top of your script
+    function resizeImage(base64Str, maxWidth = 1200, maxHeight = 1200) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function() {
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions
+          if (width > maxWidth) {
+            height = Math.round(height * (maxWidth / width));
+            width = maxWidth;
+          }
+          if (height > maxHeight) {
+            width = Math.round(width * (maxHeight / height));
+            height = maxHeight;
+          }
+          
+          // Create canvas and resize
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Get new base64
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = base64Str;
+      });
+    }
+    
     /* Title & Designer */
     function updateInstructionsTitle(val){
       instructionsTitle= val;
@@ -1014,31 +1046,34 @@
       }
     }
 
-    function renderStepsArray(arr, containerEl){
-      let stepNum=1;
-      arr.forEach(item=>{
-        if(item.type==='divider'){
-          const divHeading=document.createElement('div');
-          divHeading.className='divider-heading';
-          divHeading.textContent=item.title;
+    function renderStepsArray(arr, containerEl) {
+      let stepNum = 1;
+      arr.forEach(async (item) => {
+        if (item.type === 'divider') {
+          const divHeading = document.createElement('div');
+          divHeading.className = 'divider-heading';
+          divHeading.textContent = item.title;
           containerEl.appendChild(divHeading);
-          stepNum=1;
+          stepNum = 1;
         } else {
-          const stDiv=document.createElement('div');
-          stDiv.className='preview-step';
-          if(item.photo){
-            const img=document.createElement('img');
-            img.src=item.photo;
+          const stDiv = document.createElement('div');
+          stDiv.className = 'preview-step';
+          if (item.photo) {
+            const img = document.createElement('img');
+            // Try to resize large images
+            try {
+              const resizedPhoto = await resizeImage(item.photo);
+              img.src = resizedPhoto;
+            } catch {
+              img.src = item.photo; // Fallback to original if resize fails
+            }
             img.classList.add(`img-size-${item.photoSize}`);
-            // Add these attributes to help with PDF generation
-            img.setAttribute('crossorigin', 'anonymous');
-            img.decode().catch(() => {}); // Pre-load image
             stDiv.appendChild(img);
           }
-          if(item.instructions){
-            let clean=item.instructions.trim().replace(/\n+/g,'. ');
-            const p=document.createElement('p');
-            p.textContent=`Step ${stepNum}: ${clean}`;
+          if (item.instructions) {
+            let clean = item.instructions.trim().replace(/\n+/g, '. ');
+            const p = document.createElement('p');
+            p.textContent = `Step ${stepNum}: ${clean}`;
             stDiv.appendChild(p);
           }
           containerEl.appendChild(stDiv);
@@ -1090,24 +1125,40 @@ function renderStepsArray(arr, containerEl) {
         }
       
         const pdfPage = document.getElementById('pdfPreviewPage');
+        const clone = pdfPage.cloneNode(true);
         
-        // Debug: Log the full content structure
-        console.log("PDF page content:", pdfPage.innerHTML);
-        
-        // Debug: Log all images and their details
-        console.log("Images before PDF generation:");
-        pdfPage.querySelectorAll('img').forEach((img, index) => {
-          console.log(`Image ${index}:`, {
-            src: img.src.substring(0, 100) + '...',
-            width: img.width,
-            height: img.height,
-            naturalWidth: img.naturalWidth,
-            naturalHeight: img.naturalHeight,
-            complete: img.complete,
-            className: img.className
+        // Process all images before generating PDF
+        Promise.all(Array.from(clone.getElementsByTagName('img'))
+          .map(img => new Promise(async (resolve) => {
+            try {
+              const resized = await resizeImage(img.src);
+              img.src = resized;
+              resolve();
+            } catch {
+              resolve(); // Continue even if resize fails
+            }
+          })))
+          .then(() => {
+            const doc = new jsPDF('p', 'pt', 'letter');
+            doc.html(clone, {
+              callback: function(pdf) {
+                pdf.save('instructions.pdf');
+              },
+              x: 10,
+              y: 10,
+              width: 592,
+              autoPaging: 'text',
+              html2canvas: {
+                backgroundColor: '#ffffff',
+                scale: 1,
+                imageTimeout: 30000,
+                useCORS: true,
+                logging: true
+              }
+            });
           });
-        });
-      
+      }
+            
         // Create a clone and wait for images to load
         const clone = pdfPage.cloneNode(true);
         const imagePromises = Array.from(clone.getElementsByTagName('img'))
