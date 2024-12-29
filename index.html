@@ -1055,51 +1055,69 @@
         }
       
         const pdfPage = document.getElementById('pdfPreviewPage');
+        const clone = pdfPage.cloneNode(true);
         
-        // Wait for all images to load
-        const imagePromises = Array.from(pdfPage.getElementsByTagName('img'))
-          .map(img => {
-            if (img.complete) return Promise.resolve();
-            return new Promise(resolve => {
-              img.onload = resolve;
-              img.onerror = resolve; // Handle error case too
-            });
-          });
-      
-        Promise.all(imagePromises).then(() => {
-          const doc = new jsPDF('p', 'pt', 'letter');
-          
-          doc.html(pdfPage, {
-            callback: function(pdf) {
-              // Add links as before
-              pdfPage.querySelectorAll('a').forEach(a => {
-                const url = a.getAttribute('data-url') || a.href;
-                if (url) {
-                  const rect = a.getBoundingClientRect();
-                  pdf.link(rect.left + 10, rect.top + 10, rect.width, rect.height, { url });
-                }
-              });
-              pdf.save('instructions.pdf');
-            },
-            x: 10,
-            y: 10,
-            width: 592,
-            autoPaging: 'text',
-            overflow: 'ellipsize',
-            html2canvas: {
-              backgroundColor: '#ffffff',
-              useCORS: true,
-              scale: 1,
-              imageTimeout: 0, // Wait for images indefinitely
-              onclone: function(clonedDoc) {
-                clonedDoc.querySelectorAll('a').forEach(a => {
-                  a.style.color = '#0066cc';
-                  a.style.textDecoration = 'underline';
-                });
-              }
-            }
+        // Force image rendering and loading
+        const images = clone.getElementsByTagName('img');
+        const imagePromises = Array.from(images).map(img => {
+          return new Promise((resolve, reject) => {
+            const newImg = new Image();
+            newImg.onload = () => {
+              img.src = newImg.src;  // Replace with fully loaded image
+              resolve();
+            };
+            newImg.onerror = reject;
+            newImg.src = img.src;
           });
         });
+      
+        // Wait for all images to load before generating PDF
+        Promise.all(imagePromises)
+          .then(() => {
+            const doc = new jsPDF('p', 'pt', 'letter');
+            
+            doc.html(clone, {
+              callback: function(pdf) {
+                // Process links
+                pdfPage.querySelectorAll('a').forEach(a => {
+                  const url = a.getAttribute('data-url') || a.href;
+                  if (url) {
+                    const rect = a.getBoundingClientRect();
+                    pdf.link(rect.left + 10, rect.top + 10, rect.width, rect.height, { url });
+                  }
+                });
+                pdf.save('instructions.pdf');
+              },
+              x: 10,
+              y: 10,
+              width: 592,
+              autoPaging: 'text',
+              overflow: 'ellipsize',
+              html2canvas: {
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                scale: 1,
+                logging: true, // Enable logging for debugging
+                imageTimeout: 5000, // 5 second timeout for images
+                onclone: function(clonedDoc) {
+                  // Ensure all images are properly loaded in clone
+                  clonedDoc.querySelectorAll('img').forEach(img => {
+                    img.style.maxWidth = '100%';
+                    img.style.objectFit = 'contain';
+                  });
+                  // Style links
+                  clonedDoc.querySelectorAll('a').forEach(a => {
+                    a.style.color = '#0066cc';
+                    a.style.textDecoration = 'underline';
+                  });
+                }
+              }
+            });
+          })
+          .catch(error => {
+            console.error('Error loading images:', error);
+            alert('There was an error generating the PDF. Please try again.');
+          });
       }
     
     // Also modify how links are created in the renderPreview function
