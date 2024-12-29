@@ -1041,27 +1041,57 @@
     }
 
     /* Download PDF => no integrity => GH Pages friendly */
-    function downloadPDF(){
-      if(!jsPDF||!window.html2canvas){
-        alert("jsPDF or html2canvas not loaded properly.");
-        return;
-      }
-      const doc=new jsPDF('p','pt','letter');
-      doc.html(document.getElementById('pdfPreviewPage'),{
-        callback: pdf=>pdf.save('instructions.pdf'),
-        x:10,
-        y:10,
-        width:592,
-        autoPaging:'text',
-        overflow:'ellipsize',
-        enableLinks:true,
-        html2canvas:{
-          backgroundColor:'#ffffff',
-          useCORS:true,
-          scale:1
-        }
-      });
+  function downloadPDF() {
+    if (!jsPDF || !window.html2canvas) {
+      alert("jsPDF or html2canvas not loaded properly.");
+      return;
     }
+    
+    const doc = new jsPDF('p', 'pt', 'letter');
+    const pdfPage = document.getElementById('pdfPreviewPage');
+    
+    // First, collect all links and their positions
+    const links = [];
+    pdfPage.querySelectorAll('a').forEach(a => {
+      const rect = a.getBoundingClientRect();
+      links.push({
+        url: a.href,
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+        text: a.textContent
+      });
+    });
+    
+    // Then generate the PDF
+    doc.html(pdfPage, {
+      callback: function(pdf) {
+        // Add clickable links after the page is rendered
+        links.forEach(link => {
+          pdf.link(
+            link.x + 10, // Add offset to match doc.html x position
+            link.y + 10, // Add offset to match doc.html y position
+            link.width,
+            link.height,
+            { url: link.url }
+          );
+        });
+        
+        pdf.save('instructions.pdf');
+      },
+      x: 10,
+      y: 10,
+      width: 592,
+      autoPaging: 'text',
+      overflow: 'ellipsize',
+      html2canvas: {
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        scale: 1
+      }
+    });
+  }
 
     /* On window load => build empty forms & preview. */
     window.onload=function(){
