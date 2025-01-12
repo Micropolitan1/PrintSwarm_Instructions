@@ -4,19 +4,19 @@
   <meta charset="UTF-8" />
   <title>3D Printed Product Instructions Generator</title>
 
-  <!-- 1) html2canvas (no integrity, so GH Pages won't block it) -->
+  <!-- 1) html2canvas -->
   <script 
     src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
     crossorigin="anonymous">
   </script>
 
-  <!-- 2) jsPDF (no integrity) -->
+  <!-- 2) jsPDF -->
   <script 
     src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
     crossorigin="anonymous">
   </script>
 
-  <!-- 3) Cropper.js (CSS & JS, no integrity) -->
+  <!-- 3) Cropper.js (CSS & JS) -->
   <link 
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"
@@ -38,13 +38,15 @@
     }
     .toolbar {
       display: flex;
-      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
       align-items: center;
       margin-bottom: 10px;
     }
     .toolbar h1 {
       margin: 0;
       font-size: 1rem;
+      flex: 1;
     }
 
     /* Buttons */
@@ -287,7 +289,26 @@
 <body>
   <div class="toolbar">
     <h1>3D Printed Product Instructions Generator</h1>
+
+    <!-- Existing PDF Download Button -->
     <button class="btn btn-primary" onclick="downloadPDF()">Download PDF</button>
+
+    <!-- ADDED: Export JSON Button -->
+    <button class="btn btn-secondary" onclick="exportInstructionsJSON()">Export JSON</button>
+
+    <!-- ADDED: Import JSON Button (triggers hidden file input) -->
+    <button class="btn btn-secondary" onclick="document.getElementById('importFileInput').click()">
+      Import JSON
+    </button>
+
+    <!-- ADDED: Hidden file input to handle .json import -->
+    <input 
+      type="file" 
+      id="importFileInput" 
+      accept=".json" 
+      style="display:none" 
+      onchange="handleImportFile(event)"
+    />
   </div>
 
   <div class="form-row">
@@ -1046,126 +1067,185 @@
       }
     }
 
-      function renderStepsArray(arr, containerEl) {
-        let stepNum = 1;
-        
-        // Process images sequentially
-        const processSteps = async () => {
-          for (const item of arr) {
-            if (item.type === 'divider') {
-              const divHeading = document.createElement('div');
-              divHeading.className = 'divider-heading';
-              divHeading.textContent = item.title;
-              containerEl.appendChild(divHeading);
-              stepNum = 1;
-            } else {
-              const stDiv = document.createElement('div');
-              stDiv.className = 'preview-step';
-              if (item.photo) {
-                // Create and process image
-                const img = document.createElement('img');
-                const processedImage = await new Promise((resolve) => {
-                  const tempImg = new Image();
-                  tempImg.onload = () => {
-                    // Only resize if image is too large
-                    if (tempImg.width > 1200 || tempImg.height > 1200) {
-                      const canvas = document.createElement('canvas');
-                      const ctx = canvas.getContext('2d');
-                      let width = tempImg.width;
-                      let height = tempImg.height;
-                      
-                      if (width > 1200) {
-                        height *= 1200 / width;
-                        width = 1200;
-                      }
-                      if (height > 1200) {
-                        width *= 1200 / height;
-                        height = 1200;
-                      }
-                      
-                      canvas.width = width;
-                      canvas.height = height;
-                      ctx.drawImage(tempImg, 0, 0, width, height);
-                      resolve(canvas.toDataURL('image/jpeg', 0.85));
-                    } else {
-                      resolve(item.photo);
-                    }
-                  };
-                  tempImg.src = item.photo;
-                });
-                
-                img.src = processedImage;
-                img.classList.add(`img-size-${item.photoSize}`);
-                stDiv.appendChild(img);
-              }
-              if (item.instructions) {
-                let clean = item.instructions.trim().replace(/\n+/g, '. ');
-                const p = document.createElement('p');
-                p.textContent = `Step ${stepNum}: ${clean}`;
-                stDiv.appendChild(p);
-              }
-              containerEl.appendChild(stDiv);
-              stepNum++;
-            }
-          }
-        };
-        
-        // Execute the async function
-        processSteps();
-      }
-
-
-      function downloadPDF() {
-        if (!jsPDF || !window.html2canvas) {
-          alert("jsPDF or html2canvas not loaded properly.");
-          return;
-        }
+    function renderStepsArray(arr, containerEl) {
+      let stepNum = 1;
       
-        const pdfPage = document.getElementById('pdfPreviewPage');
-        
-        // Wait for all images to load and process
-        Promise.all(Array.from(pdfPage.getElementsByTagName('img'))
-          .map(img => new Promise((resolve) => {
-            if (img.complete) {
-              resolve();
-            } else {
-              img.onload = resolve;
+      // Process images sequentially
+      const processSteps = async () => {
+        for (const item of arr) {
+          if (item.type === 'divider') {
+            const divHeading = document.createElement('div');
+            divHeading.className = 'divider-heading';
+            divHeading.textContent = item.title;
+            containerEl.appendChild(divHeading);
+            stepNum = 1;
+          } else {
+            const stDiv = document.createElement('div');
+            stDiv.className = 'preview-step';
+            if (item.photo) {
+              // Create and process image
+              const img = document.createElement('img');
+              const processedImage = await new Promise((resolve) => {
+                const tempImg = new Image();
+                tempImg.onload = () => {
+                  // Only resize if image is too large
+                  if (tempImg.width > 1200 || tempImg.height > 1200) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    let width = tempImg.width;
+                    let height = tempImg.height;
+                    
+                    if (width > 1200) {
+                      height *= 1200 / width;
+                      width = 1200;
+                    }
+                    if (height > 1200) {
+                      width *= 1200 / height;
+                      height = 1200;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(tempImg, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                  } else {
+                    resolve(item.photo);
+                  }
+                };
+                tempImg.src = item.photo;
+              });
+              
+              img.src = processedImage;
+              img.classList.add(`img-size-${item.photoSize}`);
+              stDiv.appendChild(img);
             }
-          })))
-          .then(() => {
-            const clone = pdfPage.cloneNode(true);
-            
-            const doc = new jsPDF('p', 'pt', 'letter');
-            doc.html(clone, {
-              callback: function(pdf) {
-                pdf.save('instructions.pdf');
-              },
-              x: 10,
-              y: 10,
-              width: 592,
-              autoPaging: 'text',
-              html2canvas: {
-                backgroundColor: '#ffffff',
-                scale: 1,  // Increased scale for better quality
-                imageTimeout: 30000,
-                useCORS: true,
-                logging: true,
-                onclone: function(clonedDoc) {
-                  clonedDoc.querySelectorAll('img').forEach(img => {
-                    img.style.maxWidth = '100%';
-                    img.style.display = 'block';
-                    img.crossOrigin = 'anonymous';
-                  });
-                }
-              }
-            });
-          });
+            if (item.instructions) {
+              let clean = item.instructions.trim().replace(/\n+/g, '. ');
+              const p = document.createElement('p');
+              p.textContent = `Step ${stepNum}: ${clean}`;
+              stDiv.appendChild(p);
+            }
+            containerEl.appendChild(stDiv);
+            stepNum++;
+          }
+        }
+      };
+      
+      // Execute the async function
+      processSteps();
+    }
+
+    function downloadPDF() {
+      if (!jsPDF || !window.html2canvas) {
+        alert("jsPDF or html2canvas not loaded properly.");
+        return;
       }
-
-
-
     
-    
+      const pdfPage = document.getElementById('pdfPreviewPage');
+      
+      // Wait for all images to load and process
+      Promise.all(Array.from(pdfPage.getElementsByTagName('img'))
+        .map(img => new Promise((resolve) => {
+          if (img.complete) {
+            resolve();
+          } else {
+            img.onload = resolve;
+          }
+        })))
+        .then(() => {
+          const clone = pdfPage.cloneNode(true);
+          
+          const doc = new jsPDF('p', 'pt', 'letter');
+          doc.html(clone, {
+            callback: function(pdf) {
+              pdf.save('instructions.pdf');
+            },
+            x: 10,
+            y: 10,
+            width: 592,
+            autoPaging: 'text',
+            html2canvas: {
+              backgroundColor: '#ffffff',
+              scale: 1,
+              imageTimeout: 30000,
+              useCORS: true,
+              logging: true,
+              onclone: function(clonedDoc) {
+                clonedDoc.querySelectorAll('img').forEach(img => {
+                  img.style.maxWidth = '100%';
+                  img.style.display = 'block';
+                  img.crossOrigin = 'anonymous';
+                });
+              }
+            }
+          });
+        });
+    }
+
+    // ADDED: Export JSON
+    function exportInstructionsJSON(){
+      // Collect all data into one object
+      const dataToExport = {
+        instructionsTitle,
+        designerName,
+        filamentMaterials,
+        otherMaterials,
+        packagingMaterials,
+        printingSteps,
+        assemblingSteps,
+        packagingStepsArr
+      };
+      
+      // Convert to JSON and create a downloadable data URI
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "instructions.json");
+      dlAnchor.click();
+    }
+
+    // ADDED: Import JSON (file input onchange calls this)
+    function handleImportFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const importedData = JSON.parse(event.target.result);
+
+          instructionsTitle    = importedData.instructionsTitle || '';
+          designerName         = importedData.designerName || '';
+          filamentMaterials    = importedData.filamentMaterials || [];
+          otherMaterials       = importedData.otherMaterials || [];
+          packagingMaterials   = importedData.packagingMaterials || [];
+          printingSteps        = importedData.printingSteps || [];
+          assemblingSteps      = importedData.assemblingSteps || [];
+          packagingStepsArr    = importedData.packagingStepsArr || [];
+
+          // Reflect the loaded data in the UI
+          // Update title/designer text fields
+          const allTextInputs = document.querySelectorAll('input[type="text"]');
+          // Assuming the first text input = Title, second = Designer
+          if(allTextInputs[0]) allTextInputs[0].value = instructionsTitle;
+          if(allTextInputs[1]) allTextInputs[1].value = designerName;
+
+          // Rebuild all forms
+          rebuildFilamentList();
+          rebuildOtherList();
+          rebuildPackagingMaterials();
+          rebuildStepsTable('printing');
+          rebuildStepsTable('assembling');
+          rebuildStepsTable('packaging');
+
+          alert("Instructions imported successfully!");
+        } catch (err) {
+          alert("Error importing JSON file. Please check the file format.");
+          console.error(err);
+        }
+      };
+      reader.readAsText(file);
+    }
+
     // Also modify how links are created in the renderPreview function
     function createMaterialLink(url) {
       const lP = document.createElement('p');
@@ -1185,6 +1265,7 @@
 
     /* On window load => build empty forms & preview. */
     window.onload=function(){
+      // Just initialize the UI with empty arrays
       rebuildFilamentList();
       rebuildOtherList();
       rebuildPackagingMaterials();
