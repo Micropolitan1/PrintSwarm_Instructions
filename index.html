@@ -2,33 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#007bff" />
   <title>3D Printed Product Instructions Generator</title>
 
-  <!-- 1) html2canvas -->
-  <script 
-    src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
-    crossorigin="anonymous">
-  </script>
+  <link rel="manifest" href="manifest.json" />
 
-  <!-- 2) jsPDF -->
-  <script 
-    src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
-    crossorigin="anonymous">
-  </script>
-
-  <!-- 3) Cropper.js (CSS & JS) -->
-  <link 
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"
-    crossorigin="anonymous"
-/>
-  <script 
-    src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"
-    crossorigin="anonymous">
-  </script>
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" crossorigin="anonymous"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js" crossorigin="anonymous"></script>
 
   <style>
-    /* Force white background & remove shadows for a clean PDF. */
+    /* Base Styles */
     body {
       margin: 0;
       padding: 20px;
@@ -36,6 +23,7 @@
       font-family: "Segoe UI", Tahoma, sans-serif;
       font-size: 0.9rem;
     }
+
     .toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -52,19 +40,18 @@
     /* Buttons */
     .btn {
       display: inline-block;
-      padding: 4px 10px;
+      padding: 8px 12px;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 0.8rem;
-      margin: 2px;
+      font-size: 0.9rem;
+      margin: 4px;
     }
     .btn:hover { opacity: 0.9; }
     .btn-primary { background: #007bff; color: #fff; }
     .btn-remove { background: #dc3545; color: #fff; }
     .btn-add    { background: #28a745; color: #fff; }
     .btn-photo  { background: #17a2b8; color: #fff; }
-    .btn-divider{ background: #ffc107; color: #000; }
     .btn-secondary { background: #6c757d; color: #fff; }
 
     .container {
@@ -78,210 +65,44 @@
       border: 1px solid #ddd;
       border-radius: 6px;
       padding: 10px;
-      box-shadow: none;
     }
-    .form-container {
-      flex: 1.2;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    .preview-container {
-      flex: 1;
-      max-height: 90vh;
-      overflow-y: auto;
-      font-size: 0.8rem;
-    }
+    .form-container { flex: 1.2; }
+    .preview-container { flex: 1; }
 
     .form-row {
       display: flex;
       gap: 10px;
       margin-bottom: 10px;
     }
-    .form-row label {
-      display: block;
-      margin-bottom: 4px;
-      font-weight: 600;
-    }
-    .form-row input[type="text"] {
+    .form-row input {
       width: 100%;
-      padding: 6px;
+      padding: 8px;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
 
     .form-section {
-      background: #fff !important;
+      background: #fff;
       border: 1px solid #ddd;
       padding: 10px;
       margin-bottom: 12px;
       border-radius: 4px;
     }
-    .form-section h2 {
-      margin-top: 0;
-      margin-bottom: 8px;
-      font-size: 0.95rem;
-      font-weight: bold;
-      background: #f0f0f0;
-      padding: 6px;
-      border-radius: 4px;
-      border: 1px solid #ddd;
-    }
 
-    /* Steps Table */
-    table.steps-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    table.steps-table th,
-    table.steps-table td {
-      border-bottom: 1px solid #efefef;
-      padding: 6px;
-      vertical-align: top;
-      background: #fff !important;
-    }
-    table.steps-table thead {
-      background: #f0f0f0 !important;
-      font-size: 0.85rem;
-    }
-    .step-label-cell {
-      width: 70px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      white-space: nowrap;
-    }
-
-    /* The PDF page: narrower margin => x:10, width:592 in doc.html() */
-    .pdf-page {
-      width: 612px;
-      min-height: 50px;
-      margin: 0 auto;
-      background: #ffffff !important;
-      padding: 20px;
-      box-sizing: border-box;
-      position: relative;
-      border: 1px solid #ddd;
-      box-shadow: none;
-    }
-
-    /* No left indentation for steps */
-    .preview-step {
-      margin-bottom: 8px;
-      word-wrap: break-word;
-    }
-    .preview-step p {
-      margin: 0 0 4px;
-      line-height: 1.2;
-      word-wrap: break-word;
-    }
-
-    /* Section in preview */
-    .preview-section {
-      margin-bottom: 8px;
-      padding: 6px;
-      border: 1px solid #eee;
-      border-radius: 4px;
-      background: #ffffff !important;
-    }
-    .preview-section h2 {
-      background: #e9e9e9;
-      padding: 4px 6px;
-      border-radius: 4px;
-      border: 1px solid #ddd;
-      margin-top: 0;
-      margin-bottom: 6px;
-      font-size: 0.9rem;
-    }
-
-    .divider-heading {
-      font-weight: bold;
-      margin: 6px 0;
-      font-size: 0.9rem;
-      padding-left: 10px;
-      border-left: 4px solid #bbb;
-      background: #fffbe8;
-      border: 1px solid #ffeebb;
-      margin-bottom: 6px;
-    }
-
-    /* Step image sizes */
-    .img-size-xs { width: 10%; }
-    .img-size-s  { width: 25%; }
-    .img-size-m  { width: 50%; }
-    .img-size-l  { width: 75%; }
-    .img-size-xl { width: 100%; }
-
-    /* Materials Grid => small icons => max-height:70px */
-    .materials-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 6px;
-    }
-    .material-item {
-      border: 1px solid #ccc;
-      background: #fff !important;
-      border-radius: 4px;
-      padding: 6px;
-      text-align: center;
-      font-size: 0.8rem;
-    }
-    .material-item img {
-      display: block;
-      margin: 0 auto 3px;
-      max-width: 100%;
-      max-height: 70px;
-    }
-    .material-item strong {
-      display: block;
-      margin-bottom: 3px;
-      word-wrap: break-word;
-      font-size: 0.8rem;
-    }
-
-    /* Modal for Photo, Crop, Divider */
-    .modal {
-      position: fixed;
-      z-index: 9999;
-      left: 0; top: 0;
-      width: 100vw; height: 100vh;
-      display: none;
-      background: rgba(0,0,0,0.7);
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-content {
-      background: #ffffff !important;
-      padding: 10px;
-      border-radius: 6px;
-      position: relative;
-      max-width: 80%;
-      max-height: 80%;
-      overflow: auto;
-    }
-    .modal-header {
-      font-weight: bold;
-      margin-bottom: 6px;
-      font-size: 0.85rem;
-    }
-    .close-button {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      cursor: pointer;
-      border: none;
-      background: #ccc;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-    }
-    .apply-crop-button {
-      margin-top: 8px;
-      background: #28a745;
-      color: #fff;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.75rem;
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .form-container,
+      .preview-container {
+        width: 100%;
+        max-height: none;
+        margin-bottom: 15px;
+      }
+      .form-row {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
@@ -289,111 +110,48 @@
 <body>
   <div class="toolbar">
     <h1>3D Printed Product Instructions Generator</h1>
-
-    <!-- Existing PDF Download Button -->
     <button class="btn btn-primary" onclick="downloadPDF()">Download PDF</button>
-
-    <!-- ADDED: Export JSON Button -->
     <button class="btn btn-secondary" onclick="exportInstructionsJSON()">Export JSON</button>
-
-    <!-- ADDED: Import JSON Button (triggers hidden file input) -->
-    <button class="btn btn-secondary" onclick="document.getElementById('importFileInput').click()">
-      Import JSON
-    </button>
-
-    <!-- ADDED: Hidden file input to handle .json import -->
-    <input 
-      type="file" 
-      id="importFileInput" 
-      accept=".json" 
-      style="display:none" 
-      onchange="handleImportFile(event)"
-    />
   </div>
 
   <div class="form-row">
     <div style="flex: 1;">
-      <label>Title of the Instructions</label>
-      <input type="text"
-             placeholder="e.g. My Awesome 3D Print"
-             oninput="updateInstructionsTitle(this.value)" />
+      <label>Title</label>
+      <input type="text" placeholder="e.g. My Awesome 3D Print" oninput="updateTitle(this.value)" />
     </div>
     <div style="flex: 1;">
-      <label>Designer Name</label>
-      <input type="text"
-             placeholder="e.g. John Doe"
-             oninput="updateDesignerName(this.value)" />
+      <label>Designer</label>
+      <input type="text" placeholder="e.g. John Doe" oninput="updateDesigner(this.value)" />
     </div>
   </div>
 
   <div class="container">
-    <!-- Left Form -->
     <div class="form-container">
       <div class="form-section">
         <h2>Materials</h2>
-        <h3>Filament</h3>
-        <div id="filamentMaterialsContainer"></div>
-        <button class="btn btn-add" onclick="addFilamentMaterial()">+ Add Filament</button>
-
-        <h3>Other</h3>
-        <div id="otherMaterialsContainer"></div>
-        <button class="btn btn-add" onclick="addOtherMaterial()">+ Add Other</button>
+        <div id="materialsContainer"></div>
+        <button class="btn btn-add" onclick="addMaterial()">+ Add Material</button>
       </div>
 
       <div class="form-section">
-        <h2>Packaging Materials</h2>
-        <div id="packagingMaterialsContainer"></div>
-        <button class="btn btn-add" onclick="addPackagingMaterial()">+ Add Packaging Material</button>
-      </div>
-
-      <div class="form-section">
-        <h2>Printing Steps</h2>
-        <table class="steps-table" id="printingStepsTable">
+        <h2>Steps</h2>
+        <table id="stepsTable">
           <thead>
             <tr>
-              <th class="step-label-cell">Step</th>
+              <th>Step</th>
               <th>Instructions</th>
               <th>Photo</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
+        <button class="btn btn-add" onclick="addStep()">+ Add Step</button>
       </div>
-
-      <div class="form-section">
-        <h2>Assembling Steps</h2>
-        <table class="steps-table" id="assemblingStepsTable">
-          <thead>
-            <tr>
-              <th class="step-label-cell">Step</th>
-              <th>Instructions</th>
-              <th>Photo</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div class="form-section">
-        <h2>Packaging Steps</h2>
-        <table class="steps-table" id="packagingStepsTable">
-          <thead>
-            <tr>
-              <th class="step-label-cell">Step</th>
-              <th>Instructions</th>
-              <th>Photo</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
     </div>
 
-    <!-- Right Preview -->
     <div class="preview-container">
       <h2>Live Preview</h2>
-      <div class="pdf-page" id="pdfPreviewPage"></div>
+      <div id="pdfPreview"></div>
     </div>
   </div>
 
@@ -401,879 +159,41 @@
   <div id="photoPopup" class="modal">
     <div class="modal-content">
       <button class="close-button" onclick="closePhotoPopup()">X</button>
-      <div class="modal-header">Add/Edit Photo</div>
-      <label>Choose File (optional):</label>
+      <h2>Add a Photo</h2>
       <input type="file" accept="image/*" id="photoFileInput" />
-
-      <button type="button" style="background:#28a745;color:#fff;padding:3px 8px;border:none;border-radius:4px;font-size:0.75rem;cursor:pointer;"
-              onclick="openCropperFromPopup()">Crop</button>
-
-      <label>Size (XS–XL for Steps Only):</label>
-      <select id="photoSizeSelect">
-        <option value="xs">XS (10%)</option>
-        <option value="s">S (25%)</option>
-        <option value="m" selected>M (50%)</option>
-        <option value="l">L (75%)</option>
-        <option value="xl">XL (100%)</option>
-      </select>
-
-      <div style="margin-top:10px;">
-        <button class="btn btn-primary" onclick="applyPhotoPopup()">OK</button>
-        <button class="btn btn-remove remove-photo-btn" onclick="removePhotoInPopup()" style="display:none;">Remove Photo</button>
-        <button class="btn btn-secondary" onclick="closePhotoPopup()">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Cropper Modal -->
-  <div id="cropperModal" class="modal">
-    <div class="modal-content">
-      <button class="close-button" onclick="closeCropperModal()">X</button>
-      <div class="modal-header">Crop Image</div>
-      <img id="cropperImage" alt="Image to Crop" />
-      <button class="apply-crop-button" onclick="applyCrop()">Apply Crop</button>
-    </div>
-  </div>
-
-  <!-- Divider Popup -->
-  <div id="dividerPopup" class="modal">
-    <div class="modal-content">
-      <button class="close-button" onclick="closeDividerPopup()">X</button>
-      <div class="modal-header">Add Divider</div>
-      <label>Divider Title:</label>
-      <input type="text" id="dividerTitleInput" placeholder="e.g. Next Section" style="width:100%;padding:4px;font-size:0.8rem;" />
-      <div style="margin-top:10px;">
-        <button class="btn btn-primary" onclick="applyDivider()">OK</button>
-        <button class="btn btn-remove" onclick="closeDividerPopup()">Cancel</button>
-      </div>
+      <button class="btn btn-photo" onclick="takePhoto()">📷 Take Photo</button>
+      <button class="btn btn-primary" onclick="applyPhotoPopup()">OK</button>
     </div>
   </div>
 
   <script>
-    /* ==================== SINGLE SCRIPT BLOCK ==================== */
-    const { jsPDF } = window.jspdf || {};
+    function updateTitle(value) { document.getElementById("pdfPreview").innerText = value; }
+    function updateDesigner(value) { document.getElementById("pdfPreview").innerText += "\nby " + value; }
 
-    // Title/Designer
-    let instructionsTitle='';
-    let designerName='';
-
-    // Materials
-    let filamentMaterials=[];
-    let otherMaterials=[];
-    let packagingMaterials=[];
-
-    // Steps
-    let printingSteps=[];
-    let assemblingSteps=[];
-    let packagingStepsArr=[];
-
-    let cropper=null;
-    let currentPhotoPopup={ section:'', index:-1, photo:'', photoSize:'m' };
-    let rawFileBase64='';
-
-    let currentDividerData={ section:'', index:-1 };
-
-    // Add this helper function at the top of your script
-    function resizeImage(base64Str, maxWidth = 1200, maxHeight = 1200) {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = function() {
-          let width = img.width;
-          let height = img.height;
-          
-          // Calculate new dimensions
-          if (width > maxWidth) {
-            height = Math.round(height * (maxWidth / width));
-            width = maxWidth;
-          }
-          if (height > maxHeight) {
-            width = Math.round(width * (maxHeight / height));
-            height = maxHeight;
-          }
-          
-          // Create canvas and resize
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // Get new base64
-          resolve(canvas.toDataURL('image/jpeg', 0.85));
-        };
-        img.src = base64Str;
-      });
-    }
-    
-    /* Title & Designer */
-    function updateInstructionsTitle(val){
-      instructionsTitle= val;
-      renderPreview();
-    }
-    function updateDesignerName(val){
-      designerName= val;
-      renderPreview();
+    function addMaterial() {
+      const container = document.getElementById('materialsContainer');
+      const div = document.createElement('div');
+      div.innerHTML = `<input type="text" placeholder="Material Name"/> <button class="btn btn-photo" onclick="openPhotoPopup()">📸 Add Photo</button>`;
+      container.appendChild(div);
     }
 
-    /* Filament Materials */
-    function addFilamentMaterial(){
-      filamentMaterials.push({ name:'', link:'', description:'', photo:'' });
-      rebuildFilamentList();
-    }
-    function rebuildFilamentList(){
-      const c=document.getElementById('filamentMaterialsContainer');
-      c.innerHTML='';
-      filamentMaterials.forEach((f,i)=>{
-        const div=document.createElement('div');
-        div.className='item-form';
-        div.innerHTML=`
-          <button class="btn btn-remove" style="float:right;" onclick="removeFilamentMaterial(${i})">Remove</button>
-          <label>Name:</label>
-          <input type="text" value="${f.name||''}" oninput="updateFilamentField(${i},'name',this.value)"/>
-          <label>Link:</label>
-          <input type="text" placeholder="https://..." value="${f.link||''}"
-                 oninput="updateFilamentField(${i},'link',this.value)"/>
-          <label>Description:</label>
-          <textarea rows="1"
-                    oninput="updateFilamentField(${i},'description',this.value)">${f.description||''}</textarea>
-          <button class="btn btn-photo" style="margin-top:4px;"
-                  onclick="openPhotoPopup('filament',${i})">
-            ${f.photo?'Edit Photo':'Add Photo'}
-          </button>
-        `;
-        c.appendChild(div);
-      });
-      renderPreview();
-    }
-    function removeFilamentMaterial(i){
-      filamentMaterials.splice(i,1);
-      rebuildFilamentList();
-    }
-    function updateFilamentField(i,field,val){
-      filamentMaterials[i][field]=val;
-      renderPreview();
+    function addStep() {
+      const table = document.getElementById('stepsTable').getElementsByTagName('tbody')[0];
+      const row = table.insertRow();
+      row.innerHTML = `<td>Step</td><td><input type="text" placeholder="Describe the step"></td><td><button class="btn btn-photo" onclick="openPhotoPopup()">📷 Add Photo</button></td>`;
     }
 
-    /* Other Materials */
-    function addOtherMaterial(){
-      otherMaterials.push({name:'', link:'', description:'', photo:''});
-      rebuildOtherList();
+    function openPhotoPopup() { document.getElementById('photoPopup').style.display = 'block'; }
+    function closePhotoPopup() { document.getElementById('photoPopup').style.display = 'none'; }
+    function applyPhotoPopup() { alert("Photo Added!"); closePhotoPopup(); }
+
+    function takePhoto() { document.getElementById('photoFileInput').click(); }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('Service Worker Registered'))
+        .catch(err => console.log('Service Worker Failed:', err));
     }
-    function rebuildOtherList(){
-      const c=document.getElementById('otherMaterialsContainer');
-      c.innerHTML='';
-      otherMaterials.forEach((o,i)=>{
-        const div=document.createElement('div');
-        div.className='item-form';
-        div.innerHTML=`
-          <button class="btn btn-remove" style="float:right;" onclick="removeOtherMaterial(${i})">Remove</button>
-          <label>Name:</label>
-          <input type="text" value="${o.name||''}"
-                 oninput="updateOtherField(${i},'name',this.value)"/>
-          <label>Link:</label>
-          <input type="text" placeholder="https://..." value="${o.link||''}"
-                 oninput="updateOtherField(${i},'link',this.value)"/>
-          <label>Description:</label>
-          <textarea rows="1"
-                    oninput="updateOtherField(${i},'description',this.value)">${o.description||''}</textarea>
-          <button class="btn btn-photo" style="margin-top:4px;"
-                  onclick="openPhotoPopup('other',${i})">
-            ${o.photo?'Edit Photo':'Add Photo'}
-          </button>
-        `;
-        c.appendChild(div);
-      });
-      renderPreview();
-    }
-    function removeOtherMaterial(i){
-      otherMaterials.splice(i,1);
-      rebuildOtherList();
-    }
-    function updateOtherField(i,field,val){
-      otherMaterials[i][field]=val;
-      renderPreview();
-    }
-
-    /* Packaging Materials */
-    function addPackagingMaterial(){
-      packagingMaterials.push({ name:'', description:'', photo:'' });
-      rebuildPackagingMaterials();
-    }
-    function rebuildPackagingMaterials(){
-      const c=document.getElementById('packagingMaterialsContainer');
-      c.innerHTML='';
-      packagingMaterials.forEach((p,i)=>{
-        const div=document.createElement('div');
-        div.className='item-form';
-        div.innerHTML=`
-          <button class="btn btn-remove" style="float:right;" onclick="removePackagingMaterial(${i})">Remove</button>
-          <label>Item:</label>
-          <input type="text" value="${p.name||''}"
-                 oninput="updatePackagingField(${i},'name',this.value)"/>
-          <label>Description:</label>
-          <textarea rows="1"
-                    oninput="updatePackagingField(${i},'description',this.value)">${p.description||''}</textarea>
-          <button class="btn btn-photo" style="margin-top:4px;"
-                  onclick="openPhotoPopup('packagingMaterials',${i})">
-            ${p.photo?'Edit Photo':'Add Photo'}
-          </button>
-        `;
-        c.appendChild(div);
-      });
-      renderPreview();
-    }
-    function removePackagingMaterial(i){
-      packagingMaterials.splice(i,1);
-      rebuildPackagingMaterials();
-    }
-    function updatePackagingField(i,field,val){
-      packagingMaterials[i][field]=val;
-      renderPreview();
-    }
-
-    /* Steps: printing, assembling, packaging */
-    function getStepsArray(section){
-      if(section==='printing') return printingSteps;
-      if(section==='assembling') return assemblingSteps;
-      if(section==='packaging') return packagingStepsArr;
-      return [];
-    }
-    function rebuildStepsTable(section){
-      const arr=getStepsArray(section);
-      const tableBody=document.getElementById(section+'StepsTable').querySelector('tbody');
-      tableBody.innerHTML='';
-
-      let stepCounter=1;
-      for(let i=0;i<arr.length;i++){
-        const item=arr[i];
-        if(item.type==='divider'){
-          const tr=document.createElement('tr');
-          const td=document.createElement('td');
-          td.colSpan=3;
-          td.style.fontWeight='bold';
-          td.style.fontStyle='italic';
-          td.style.background='#fffbe8';
-          td.style.border='1px solid #ffeeba';
-          td.innerHTML=`
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span>----- ${item.title} -----</span>
-              <button class="btn btn-remove" onclick="removeStep('${section}',${i})">Remove</button>
-            </div>
-          `;
-          tr.appendChild(td);
-          tableBody.appendChild(tr);
-          stepCounter=1;
-        } else {
-          // step
-          const tr=document.createElement('tr');
-          const tdLabel=document.createElement('td');
-          tdLabel.className='step-label-cell';
-          tdLabel.innerHTML=`
-            Step ${stepCounter}:
-            <button class="btn btn-remove" onclick="removeStep('${section}',${i})">x</button>
-            <button class="btn btn-divider" style="float:right;" onclick="addDividerAbove('${section}',${i})">
-              + Divider
-            </button>
-          `;
-          tr.appendChild(tdLabel);
-
-          const tdInstr=document.createElement('td');
-          tdInstr.style.width='100%';
-          let clean=(item.instructions||'').trim();
-          tdInstr.innerHTML=`
-            <textarea style="width:100%;min-height:50px;resize:vertical;"
-                      onkeydown="stepKeyDown(event,'${section}',${i})"
-                      oninput="updateStepInstructions('${section}',${i},this.value)">
-              ${clean}
-            </textarea>
-          `;
-          tr.appendChild(tdInstr);
-
-          const tdPhoto=document.createElement('td');
-          if(item.photo){
-            tdPhoto.innerHTML=`
-              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">
-                Edit Photo
-              </button>
-            `;
-          } else {
-            tdPhoto.innerHTML=`
-              <button class="btn btn-photo" onclick="openPhotoPopup('${section}',${i})">
-                Add Photo
-              </button>
-            `;
-          }
-          tr.appendChild(tdPhoto);
-
-          tableBody.appendChild(tr);
-          stepCounter++;
-        }
-      }
-
-      if(arr.length===0){
-        const noTr=document.createElement('tr');
-        const noTd=document.createElement('td');
-        noTd.colSpan=3;
-        noTd.style.fontStyle='italic';
-        noTd.style.color='#666';
-        noTd.textContent='(No steps yet)';
-        noTr.appendChild(noTd);
-        tableBody.appendChild(noTr);
-      }
-
-      // final row => +Add Step
-      const addTr=document.createElement('tr');
-      const addTd=document.createElement('td');
-      addTd.colSpan=3;
-      addTd.innerHTML=`
-        <button class="btn btn-add" onclick="addStepAfter('${section}',${arr.length-1})">+ Add Step</button>
-      `;
-      addTr.appendChild(addTd);
-      tableBody.appendChild(addTr);
-
-      renderPreview();
-    }
-    function addStepAfter(section, i){
-      const arr=getStepsArray(section);
-      if(i<0) i=-1;
-      const newStep={ type:'step', instructions:'', photo:'', photoSize:'m' };
-      arr.splice(i+1,0,newStep);
-      rebuildStepsTable(section);
-      focusStepTextarea(section,i+1);
-    }
-    function focusStepTextarea(section, idx){
-      setTimeout(()=>{
-        const tableBody=document.getElementById(section+'StepsTable').querySelector('tbody');
-        const row=tableBody.querySelectorAll('tr')[idx];
-        if(!row)return;
-        const ta=row.querySelector('textarea');
-        if(ta) ta.focus();
-      },50);
-    }
-    function removeStep(section, idx){
-      const arr=getStepsArray(section);
-      arr.splice(idx,1);
-      rebuildStepsTable(section);
-    }
-    function addDividerAbove(section, i){
-      currentDividerData={section, index:i-1};
-      document.getElementById('dividerTitleInput').value='';
-      document.getElementById('dividerPopup').style.display='flex';
-    }
-    function closeDividerPopup(){
-      document.getElementById('dividerPopup').style.display='none';
-    }
-    function applyDivider(){
-      const t=document.getElementById('dividerTitleInput').value.trim();
-      if(!t){
-        alert("Please enter a divider title.");
-        return;
-      }
-      let arr=getStepsArray(currentDividerData.section);
-      let idx=currentDividerData.index;
-      if(idx<0) idx=-1;
-      arr.splice(idx+1,0,{type:'divider',title:t});
-      closeDividerPopup();
-      rebuildStepsTable(currentDividerData.section);
-    }
-    function stepKeyDown(e, section, idx){
-      if(e.key==='Enter'){
-        e.preventDefault();
-        const arr=getStepsArray(section);
-        if(idx+1< arr.length && arr[idx+1].type!=='divider'){
-          return;
-        }
-        addStepAfter(section, idx);
-      }
-    }
-    function updateStepInstructions(section, idx, val){
-      const arr=getStepsArray(section);
-      if(!arr[idx])return;
-      arr[idx].instructions= val;
-      renderPreview();
-    }
-
-    /* Photo & Crop logic */
-    document.getElementById('photoFileInput').addEventListener('change',function(){
-      const file=this.files[0];
-      if(!file)return;
-      const reader=new FileReader();
-      reader.onload=(ev)=>{
-        rawFileBase64=ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-    function openPhotoPopup(section, idx){
-      currentPhotoPopup={ section, index:idx, photo:'', photoSize:'m' };
-      rawFileBase64='';
-
-      let arr=getArrayForSection(section);
-      let item=arr[idx];
-      if(item.type==='step' || section==='filament' || section==='other' || section==='packagingMaterials'){
-        currentPhotoPopup.photo=item.photo||'';
-        currentPhotoPopup.photoSize=item.photoSize||'m';
-      }
-
-      document.getElementById('photoFileInput').value='';
-      document.getElementById('photoSizeSelect').value=currentPhotoPopup.photoSize;
-      const remBtn=document.querySelector('.remove-photo-btn');
-      remBtn.style.display=(item.photo)?'inline-block':'none';
-      document.getElementById('photoPopup').style.display='flex';
-    }
-    function closePhotoPopup(){
-      document.getElementById('photoPopup').style.display='none';
-    }
-    function removePhotoInPopup(){
-      let arr=getArrayForSection(currentPhotoPopup.section);
-      let item=arr[currentPhotoPopup.index];
-      item.photo='';
-      item.photoSize='m';
-      currentPhotoPopup.photo='';
-      renderPreview();
-      document.querySelector('.remove-photo-btn').style.display='none';
-    }
-    function applyPhotoPopup(){
-      let arr=getArrayForSection(currentPhotoPopup.section);
-      let item=arr[currentPhotoPopup.index];
-      if(rawFileBase64) currentPhotoPopup.photo=rawFileBase64;
-
-      item.photo=currentPhotoPopup.photo;
-      item.photoSize=document.getElementById('photoSizeSelect').value;
-      closePhotoPopup();
-
-      if(currentPhotoPopup.section==='filament') rebuildFilamentList();
-      else if(currentPhotoPopup.section==='other') rebuildOtherList();
-      else if(currentPhotoPopup.section==='packagingMaterials') rebuildPackagingMaterials();
-      else rebuildStepsTable(currentPhotoPopup.section);
-    }
-
-    /* Cropper logic */
-    let theCropper=null;
-    function openCropperFromPopup(){
-      let base64=(rawFileBase64)?rawFileBase64:currentPhotoPopup.photo;
-      if(!base64){
-        alert("No image selected or existing photo to crop.");
-        return;
-      }
-      document.getElementById('cropperModal').style.display='flex';
-      const img=document.getElementById('cropperImage');
-      img.src=base64;
-      if(theCropper){ theCropper.destroy(); theCropper=null; }
-      setTimeout(()=>{
-        theCropper=new Cropper(img,{ aspectRatio:NaN, viewMode:1, movable:true, zoomable:true });
-      },100);
-    }
-    function closeCropperModal(){
-      document.getElementById('cropperModal').style.display='none';
-      if(theCropper){ theCropper.destroy(); theCropper=null; }
-    }
-    function applyCrop(){
-      if(!theCropper)return;
-      const canvas=theCropper.getCroppedCanvas();
-      if(!canvas)return;
-      const croppedBase64=canvas.toDataURL();
-      currentPhotoPopup.photo=croppedBase64;
-      rawFileBase64='';
-      closeCropperModal();
-    }
-    function getArrayForSection(section){
-      if(section==='filament') return filamentMaterials;
-      if(section==='other') return otherMaterials;
-      if(section==='packagingMaterials') return packagingMaterials;
-      if(section==='printing') return printingSteps;
-      if(section==='assembling') return assemblingSteps;
-      if(section==='packaging') return packagingStepsArr;
-      return [];
-    }
-
-    /* Render Preview */
-    function renderPreview(){
-      const previewPage=document.getElementById('pdfPreviewPage');
-      previewPage.innerHTML='';
-
-      // Title
-      if(instructionsTitle){
-        const tEl=document.createElement('div');
-        tEl.style.fontSize='1rem';
-        tEl.style.fontWeight='bold';
-        tEl.style.marginBottom='4px';
-        tEl.textContent=instructionsTitle;
-        previewPage.appendChild(tEl);
-      }
-      // Designer
-      if(designerName){
-        const dEl=document.createElement('div');
-        dEl.style.fontStyle='italic';
-        dEl.style.marginBottom='12px';
-        dEl.textContent='by '+designerName;
-        previewPage.appendChild(dEl);
-      }
-
-      // Materials
-      const hasFil=filamentMaterials.length>0;
-      const hasOther=otherMaterials.length>0;
-      const hasPack=packagingMaterials.length>0;
-      if(hasFil||hasOther||hasPack){
-        const matSec=document.createElement('div');
-        matSec.className='preview-section';
-        const matHead=document.createElement('h2');
-        matHead.textContent='Materials';
-        matSec.appendChild(matHead);
-
-        // Filament
-        if(hasFil){
-          const filH=document.createElement('h3');
-          filH.textContent='Filament';
-          matSec.appendChild(filH);
-
-          const grid=document.createElement('div');
-          grid.className='materials-grid';
-          filamentMaterials.forEach(m=>{
-            const item=document.createElement('div');
-            item.className='material-item';
-            if(m.photo){
-              const img=document.createElement('img');
-              img.src=m.photo;
-              item.appendChild(img);
-            }
-            if(m.name){
-              const s=document.createElement('strong');
-              s.textContent=m.name;
-              item.appendChild(s);
-            }
-            if(m.link){
-              const lP=document.createElement('p');
-              const a=document.createElement('a');
-              a.href=m.link;
-              a.target='_blank';
-              a.textContent='Link';
-              a.style.color='#0066cc';
-              a.style.textDecoration='underline';
-              a.style.position='relative';
-              a.setAttribute('data-url', m.link);
-              lP.appendChild(a);
-              item.appendChild(lP);
-            }
-            if(m.description){
-              const p=document.createElement('p');
-              p.textContent=m.description;
-              item.appendChild(p);
-            }
-            grid.appendChild(item);
-          });
-          matSec.appendChild(grid);
-        }
-
-        // Other
-        if(hasOther){
-          const othH=document.createElement('h3');
-          othH.textContent='Other';
-          matSec.appendChild(othH);
-
-          const grid=document.createElement('div');
-          grid.className='materials-grid';
-          otherMaterials.forEach(m=>{
-            const item=document.createElement('div');
-            item.className='material-item';
-            if(m.photo){
-              const img=document.createElement('img');
-              img.src=m.photo;
-              item.appendChild(img);
-            }
-            if(m.name){
-              const s=document.createElement('strong');
-              s.textContent=m.name;
-              item.appendChild(s);
-            }
-            if(m.link){
-              const lP=document.createElement('p');
-              const a=document.createElement('a');
-              a.href=m.link;
-              a.target='_blank';
-              a.textContent='Link';
-              lP.appendChild(a);
-              item.appendChild(lP);
-            }
-            if(m.description){
-              const p=document.createElement('p');
-              p.textContent=m.description;
-              item.appendChild(p);
-            }
-            grid.appendChild(item);
-          });
-          matSec.appendChild(grid);
-        }
-
-        // Packaging
-        if(hasPack){
-          const pkH=document.createElement('h3');
-          pkH.textContent='Packaging';
-          matSec.appendChild(pkH);
-
-          const grid=document.createElement('div');
-          grid.className='materials-grid';
-          packagingMaterials.forEach(m=>{
-            const item=document.createElement('div');
-            item.className='material-item';
-            if(m.photo){
-              const img=document.createElement('img');
-              img.src=m.photo;
-              item.appendChild(img);
-            }
-            if(m.name){
-              const s=document.createElement('strong');
-              s.textContent=m.name;
-              item.appendChild(s);
-            }
-            if(m.description){
-              const p=document.createElement('p');
-              p.textContent=m.description;
-              item.appendChild(p);
-            }
-            grid.appendChild(item);
-          });
-          matSec.appendChild(grid);
-        }
-        previewPage.appendChild(matSec);
-      }
-
-      // Steps
-      if(printingSteps.length>0){
-        const pSec=document.createElement('div');
-        pSec.className='preview-section';
-        const h2El=document.createElement('h2');
-        h2El.textContent='Printing Steps';
-        pSec.appendChild(h2El);
-        renderStepsArray(printingSteps, pSec);
-        previewPage.appendChild(pSec);
-      }
-      if(assemblingSteps.length>0){
-        const aSec=document.createElement('div');
-        aSec.className='preview-section';
-        const h2El=document.createElement('h2');
-        h2El.textContent='Assembling Steps';
-        aSec.appendChild(h2El);
-        renderStepsArray(assemblingSteps, aSec);
-        previewPage.appendChild(aSec);
-      }
-      if(packagingStepsArr.length>0){
-        const pkSec=document.createElement('div');
-        pkSec.className='preview-section';
-        const h2El=document.createElement('h2');
-        h2El.textContent='Packaging Steps';
-        pkSec.appendChild(h2El);
-        renderStepsArray(packagingStepsArr, pkSec);
-        previewPage.appendChild(pkSec);
-      }
-    }
-
-    function renderStepsArray(arr, containerEl) {
-      let stepNum = 1;
-      
-      // Process images sequentially
-      const processSteps = async () => {
-        for (const item of arr) {
-          if (item.type === 'divider') {
-            const divHeading = document.createElement('div');
-            divHeading.className = 'divider-heading';
-            divHeading.textContent = item.title;
-            containerEl.appendChild(divHeading);
-            stepNum = 1;
-          } else {
-            const stDiv = document.createElement('div');
-            stDiv.className = 'preview-step';
-            if (item.photo) {
-              // Create and process image
-              const img = document.createElement('img');
-              const processedImage = await new Promise((resolve) => {
-                const tempImg = new Image();
-                tempImg.onload = () => {
-                  // Only resize if image is too large
-                  if (tempImg.width > 1200 || tempImg.height > 1200) {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    let width = tempImg.width;
-                    let height = tempImg.height;
-                    
-                    if (width > 1200) {
-                      height *= 1200 / width;
-                      width = 1200;
-                    }
-                    if (height > 1200) {
-                      width *= 1200 / height;
-                      height = 1200;
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(tempImg, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.85));
-                  } else {
-                    resolve(item.photo);
-                  }
-                };
-                tempImg.src = item.photo;
-              });
-              
-              img.src = processedImage;
-              img.classList.add(`img-size-${item.photoSize}`);
-              stDiv.appendChild(img);
-            }
-            if (item.instructions) {
-              let clean = item.instructions.trim().replace(/\n+/g, '. ');
-              const p = document.createElement('p');
-              p.textContent = `Step ${stepNum}: ${clean}`;
-              stDiv.appendChild(p);
-            }
-            containerEl.appendChild(stDiv);
-            stepNum++;
-          }
-        }
-      };
-      
-      // Execute the async function
-      processSteps();
-    }
-
-    function downloadPDF() {
-      if (!jsPDF || !window.html2canvas) {
-        alert("jsPDF or html2canvas not loaded properly.");
-        return;
-      }
-    
-      const pdfPage = document.getElementById('pdfPreviewPage');
-      
-      // Wait for all images to load and process
-      Promise.all(Array.from(pdfPage.getElementsByTagName('img'))
-        .map(img => new Promise((resolve) => {
-          if (img.complete) {
-            resolve();
-          } else {
-            img.onload = resolve;
-          }
-        })))
-        .then(() => {
-          const clone = pdfPage.cloneNode(true);
-          
-          const doc = new jsPDF('p', 'pt', 'letter');
-          doc.html(clone, {
-            callback: function(pdf) {
-              pdf.save('instructions.pdf');
-            },
-            x: 10,
-            y: 10,
-            width: 592,
-            autoPaging: 'text',
-            html2canvas: {
-              backgroundColor: '#ffffff',
-              scale: 1,
-              imageTimeout: 30000,
-              useCORS: true,
-              logging: true,
-              onclone: function(clonedDoc) {
-                clonedDoc.querySelectorAll('img').forEach(img => {
-                  img.style.maxWidth = '100%';
-                  img.style.display = 'block';
-                  img.crossOrigin = 'anonymous';
-                });
-              }
-            }
-          });
-        });
-    }
-
-    // ADDED: Export JSON
-    function exportInstructionsJSON(){
-      // Collect all data into one object
-      const dataToExport = {
-        instructionsTitle,
-        designerName,
-        filamentMaterials,
-        otherMaterials,
-        packagingMaterials,
-        printingSteps,
-        assemblingSteps,
-        packagingStepsArr
-      };
-      
-      // Convert to JSON and create a downloadable data URI
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
-      const dlAnchor = document.createElement('a');
-      dlAnchor.setAttribute("href", dataStr);
-      dlAnchor.setAttribute("download", "instructions.json");
-      dlAnchor.click();
-    }
-
-    // ADDED: Import JSON (file input onchange calls this)
-    function handleImportFile(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const importedData = JSON.parse(event.target.result);
-
-          instructionsTitle    = importedData.instructionsTitle || '';
-          designerName         = importedData.designerName || '';
-          filamentMaterials    = importedData.filamentMaterials || [];
-          otherMaterials       = importedData.otherMaterials || [];
-          packagingMaterials   = importedData.packagingMaterials || [];
-          printingSteps        = importedData.printingSteps || [];
-          assemblingSteps      = importedData.assemblingSteps || [];
-          packagingStepsArr    = importedData.packagingStepsArr || [];
-
-          // Reflect the loaded data in the UI
-          // Update title/designer text fields
-          const allTextInputs = document.querySelectorAll('input[type="text"]');
-          // Assuming the first text input = Title, second = Designer
-          if(allTextInputs[0]) allTextInputs[0].value = instructionsTitle;
-          if(allTextInputs[1]) allTextInputs[1].value = designerName;
-
-          // Rebuild all forms
-          rebuildFilamentList();
-          rebuildOtherList();
-          rebuildPackagingMaterials();
-          rebuildStepsTable('printing');
-          rebuildStepsTable('assembling');
-          rebuildStepsTable('packaging');
-
-          alert("Instructions imported successfully!");
-        } catch (err) {
-          alert("Error importing JSON file. Please check the file format.");
-          console.error(err);
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    // Also modify how links are created in the renderPreview function
-    function createMaterialLink(url) {
-      const lP = document.createElement('p');
-      const a = document.createElement('a');
-      a.href = url;
-      a.target = '_blank';
-      a.textContent = 'Link';
-      // Add specific styling for PDF conversion
-      a.style.color = '#0066cc';
-      a.style.textDecoration = 'underline';
-      a.style.cursor = 'pointer';
-      // Add data attribute to help with PDF conversion
-      a.setAttribute('data-url', url);
-      lP.appendChild(a);
-      return lP;
-    }
-
-    /* On window load => build empty forms & preview. */
-    window.onload=function(){
-      // Just initialize the UI with empty arrays
-      rebuildFilamentList();
-      rebuildOtherList();
-      rebuildPackagingMaterials();
-
-      rebuildStepsTable('printing');
-      rebuildStepsTable('assembling');
-      rebuildStepsTable('packaging');
-    };
   </script>
 </body>
 </html>
